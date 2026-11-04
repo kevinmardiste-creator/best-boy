@@ -399,6 +399,7 @@ async function startWx(){
   let la,lo;
   if(wr.ex){la=wr.ex[0];lo=wr.ex[1];if(!p.wname){p.wname=nearest(la,lo).n.split(',')[0];p.wsrc=wr.src;p.wref=wr.ref;save()}}
   else{if(!p.wk||!p.wla){let h=null;for(const q0 of wr.qs){h=await geo(q0);if(h)break}if(!h){W.err='nf';paintWx();busy=false;return}p.wk='g';p.wla=h.latitude;p.wlo=h.longitude;p.wname=h.name;p.wsrc=wr.src;p.wref=wr.ref;save()}la=p.wla;lo=p.wlo}
+  if(!wr.ex&&(Math.abs((p.lat||0)-la)>.002||Math.abs((p.lon||0)-lo)>.002)){p.lat=+(+la).toFixed(5);p.lon=+(+lo).toFixed(5);save();setTimeout(r,0)}
   const u='https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m&minutely_15=precipitation&forecast_minutely_15=4&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,relative_humidity_2m&timezone=Europe%2FTallinn&forecast_days=3';
   const j=await (await fetch(u)).json();if(!j.current)throw new Error('nodata');
   const c=j.current,ph=WMO[c.weather_code]||'',now=c.time,hs=j.hourly,k0=Math.max(0,hs.time.findIndex(t=>t>=now.slice(0,13)+':00')),H=[];
