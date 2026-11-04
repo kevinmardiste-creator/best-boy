@@ -367,7 +367,7 @@ function coordsFrom(u){if(!u)return null;let s=String(u);try{s=decodeURIComponen
  for(const x of R){const m=s.match(x);if(m){const a=+m[1],b=+m[2];if(Math.abs(a)<=90&&Math.abs(b)<=180)return [a,b]}}return null}
 function locOk(a){a=String(a||'').trim();if(a.length<4||/\b(prep|prepping|sc\.?\s*\d|scenes?|grip|rigging|rig|shoot|shooting|wrap|call|lunch|crew)\b|\+/i.test(a)||/\b\d+\s*(min|mins|minutes|km)\b/i.test(a)||/^[\d\s:.,-]+$/.test(a))return false;return a.includes(',')||/[A-Za-zÕÄÖÜõäöü]{3,}\s+\d+[A-Za-z]?\b/.test(a)}
 function xlOk(a){const seen={};return (a||[]).filter(x=>{if(!x||!x.a||!locOk(x.a)||/^\s*[\d.,]+\s*(min|mins|minutes|km|h)\b/i.test(x.a)||/\b\d+\s*(min|minutes)\b\s*$/i.test(x.a)&&x.a.length<14)return false;const k=String(x.n||'').toUpperCase();if(seen[k])return false;seen[k]=1;return true})}
-function parseLoc(t){t=String(t);const hd=t.match(/LOCATION\s*\/\s*BASE/i);if(hd){let r=t.slice(hd.index+hd[0].length);const e=r.search(/DRIVING\s*TIME|HOSPITAL|WEATHER|SAFETY|ADVANCE|SCENE\s*#|SCHEDULE|CAST\b|CREW\b/);if(e>=0)r=r.slice(0,e);t=r.slice(0,1500)}
+function parseLoc(t){t=String(t);const hd=t.match(/LOCATION\s*\/\s*BASE/i);if(hd){let r=t.slice(hd.index+hd[0].length);{const nl=r.indexOf('\n');if(nl>=0&&!/\b(?:LOC(?:ATION)?|SET|BASE)\b[^\n]*[:\-–]/i.test(r.slice(0,nl)))r=r.slice(nl+1)}const e=r.search(/DRIVING\s*TIME|HOSPITAL|WEATHER|SAFETY|ADVANCE|SCENE\s*#|SCHEDULE|CAST\b|CREW\b/);if(e>=0)r=r.slice(0,e);t=r.slice(0,1500)}
  const RX=/\b((?:LOC(?:ATION)?|Location|SET|BASE(?:CAMP)?|Base)(?:\s*\d+)?(?:\s*\/\s*(?:LOC(?:ATION)?|SET|BASE(?:CAMP)?)(?:\s*\d+)?)?)(?:\s+for\s+the\s+day)?(\s*(?:PIN|pin|Pin))?\s*[:\-–]\s*/g,ms=[...String(t).matchAll(RX)],L=[],B=[];
  ms.forEach((m,i)=>{const st=m.index+m[0].length,end=i+1<ms.length?ms[i+1].index:Math.min(t.length,st+500),x=t.slice(st,end),
   u=((x.match(/https?:\/\/[^\s<>"')]+/)||[])[0]||'').replace(/[.,;]+$/,''),
@@ -498,7 +498,7 @@ function parseDates(t){const o=new Set(),now=new Date(),Y=now.getFullYear(),pad=
  for(const m of t.matchAll(/\b(20\d\d)-(\d{2})-(\d{2})\b/g))add(+m[1],+m[2],+m[3]);
  for(const m of t.matchAll(/\b(\d{1,2})[./](\d{1,2})(?:[./](\d{4}|\d{2}))?(?![\d:])/g)){const d=+m[1],mo=+m[2];let y=m[3]?+m[3]:0;if(y&&y<100)y+=2000;add(y||near(d,mo),mo,d)}
  return [...o].sort()}
-function parseInfo(t){const g=re=>{const m=t.match(re);return m&&m[1].trim()},first=(...r)=>{for(const x of r){const v=g(x);if(v)return v}},f=s=>s&&s.replace('.',':').replace(/^(\d):/,'0$1:'),i={},dm=t.match(/(?:day|p[äa]ev)\s*(\d{1,2})\s*(?:of|\/|-|–)\s*(\d{1,2})/i);
+function parseInfo(t){const g=re=>{const m=t.match(re);return m&&m[1].trim()},first=(...r)=>{for(const x of r){const v=g(x);if(v)return v}},f=s=>s&&s.replace('.',':').replace(/^(\d):/,'0$1:'),i={},dm=t.match(/(?:day|p[äa]ev)\s*(\d{1,2})\s*(?:out\s+of|of|\/|-|–)\s*(\d{1,2})/i);
  i.call=f(first(/(?:crew\s*call|general\s*call|kogunemine)\D{0,15}(\d{1,2}[:.]\d{2})/i,/call\s*time\D{0,15}(\d{1,2}[:.]\d{2})/i,/call\D{0,15}(\d{1,2}[:.]\d{2})/i));
  i.wrap=f(g(/wrap\D{0,15}(\d{1,2}[:.]\d{2})/i));i.lunch=f(g(/(?:lunch|lõuna)\D{0,15}(\d{1,2}[:.]\d{2})/i));
  const pl=parseLoc(t);if(pl.loc){i.loc=pl.loc.a||'';i.ln=pl.loc.n||'';if(pl.loc.url){i.pin=pl.loc.url;const c=coordsFrom(pl.loc.url);if(c){i.clat=c[0];i.clon=c[1]}}}else i.loc=g(/(?:location|asukoht|address|aadress|võttepaik)\s*[:\-–]\s*(.+)/i);
