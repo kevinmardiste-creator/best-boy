@@ -444,7 +444,7 @@ async function baseVec(map,fb){try{
   else if(/^landcover_(wood|grass|wetland|sand)|landuse_residential/.test(id)){l.paint['fill-color']='#33463a';l.paint['fill-opacity']=.6}
   else if(/^road_(minor|secondary|trunk|motorway|link|service)/.test(id)&&l.type==='line'&&!/casing/.test(id)){l.paint['line-color']='#5b6b60';l.paint['line-opacity']=.7}
   else if(/casing/.test(id))l.paint['line-opacity']=0;else if(l.type==='symbol'){l.paint['text-color']='#b9c7bb';l.paint['text-halo-color']='rgba(20,28,22,.85)'}});
- L.maplibreGL({style:st,pane:'basep'}).addTo(map);setTimeout(()=>map.removeLayer(fb),1200)}catch(e){}}
+ const gl=L.maplibreGL({style:st,pane:'basep'}).addTo(map),gm=gl.getMaplibreMap(),fx=()=>{try{map.invalidateSize();gm.resize();gm.triggerRepaint()}catch(e){}};gm.once('idle',()=>{fx();setTimeout(()=>map.removeLayer(fb),400)});[300,900,2200].forEach(t=>setTimeout(fx,t))}catch(e){}}
 var RD={i:6,fr:[],pl:0,tm:null,map:null,el:null,lay:null,mk:null};
 function radFrames(){const st=300000,n=Math.floor((Date.now()-600000)/st)*st,o=[];for(let k=-6;k<=0;k++)o.push({t:n+k*st,f:0});for(let k=1;k<=9;k++)o.push({t:n+k*st,f:1});return o}
 function radLbl(x){const d=new Date(x.t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(x.f?' · prognoos':' · vaatlus')}
