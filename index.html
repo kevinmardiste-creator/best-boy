@@ -435,7 +435,7 @@ function wxChart(H,inW,p){const n=H.length;if(!n)return '';const W=360,L=10,R=10
  return `<svg viewBox="0 0 ${W} 134" width="100%" role="img" aria-label="Tunniprognoos: temperatuur ja sajutõenäosus">${band}${bars}<path d="${line}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${lb}</svg>`}
 
 function ldS(u,css){return new Promise((ok,no)=>{const e=document.createElement(css?'link':'script');if(css){e.rel='stylesheet';e.href=u}else e.src=u;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
-async function baseVec(map){try{
+async function baseVec(map,fb){try{
  if(!window.maplibregl){await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',1);await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js')}
  if(!L.maplibreGL)await ldS('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js');
  const st=await (await fetch('https://tiles.openfreemap.org/styles/liberty')).json(),hide=/^(park|park_outline|natural_earth|boundary_3|boundary_disputed|poi_|landuse_(pitch|track|cemetery|hospital|school)|building|road_one_way|highway-shield|road_shield|airport|aeroway|waterway_line_label)/;
@@ -444,7 +444,7 @@ async function baseVec(map){try{
   else if(/^landcover_(wood|grass|wetland|sand)|landuse_residential/.test(id)){l.paint['fill-color']='#33463a';l.paint['fill-opacity']=.6}
   else if(/^road_(minor|secondary|trunk|motorway|link|service)/.test(id)&&l.type==='line'&&!/casing/.test(id)){l.paint['line-color']='#5b6b60';l.paint['line-opacity']=.7}
   else if(/casing/.test(id))l.paint['line-opacity']=0;else if(l.type==='symbol'){l.paint['text-color']='#b9c7bb';l.paint['text-halo-color']='rgba(20,28,22,.85)'}});
- L.maplibreGL({style:st,pane:'basep'}).addTo(map)}catch(e){}}
+ L.maplibreGL({style:st,pane:'basep'}).addTo(map);setTimeout(()=>map.removeLayer(fb),1200)}catch(e){}}
 var RD={i:6,fr:[],pl:0,tm:null,map:null,el:null,lay:null,mk:null};
 function radFrames(){const st=300000,n=Math.floor((Date.now()-600000)/st)*st,o=[];for(let k=-6;k<=0;k++)o.push({t:n+k*st,f:0});for(let k=1;k<=9;k++)o.push({t:n+k*st,f:1});return o}
 function radLbl(x){const d=new Date(x.t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(x.f?' · prognoos':' · vaatlus')}
@@ -453,7 +453,7 @@ function radPlay(){const b=RD.el.querySelector('button');if(RD.pl){clearInterval
 function radSlot(){const s=$('#radslot');if(!s||!window.L)return;
  if(!RD.el){RD.fr=radFrames();RD.i=6;RD.el=document.createElement('div');RD.el.className='rdr';RD.el.innerHTML='<div class="rm"></div><div class="rt"><i></i><span>RADAR</span></div><div class="rb"><button type="button">▶</button><input type="range" min="0" max="'+(RD.fr.length-1)+'" value="6"><span class="rl" style="min-width:7.5rem;text-align:right"></span></div><div class="ra">Radar: Keskkonnaagentuur (CC BY 4.0) · kaart © OpenStreetMap, OpenFreeMap</div>';RD.el.querySelector('button').onclick=radPlay;RD.el.querySelector('input').oninput=e=>radSet(+e.target.value)}
  s.appendChild(RD.el);const p=P(),c=[p.lat||59.437,p.lon||24.754];
- if(!RD.map){const m=RD.el.querySelector('.rm');RD.map=L.map(m,{zoomControl:true,attributionControl:false}).setView(c,8);RD.map.createPane('basep').style.zIndex=150;L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:14,pane:'basep'}).addTo(RD.map);baseVec(RD.map);RD.lay=L.tileLayer.wms('https://ilmgs.envir.ee/geoserver/ilm/wms',{layers:'ilm:cmp_cap',styles:'',format:'image/png',transparent:true,version:'1.1.1',opacity:.8,time:'x'}).addTo(RD.map);RD.mk=L.marker(c,{icon:L.divIcon({className:'',html:'<div class="pinm"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false,keyboard:false}).addTo(RD.map);radSet(6);setInterval(()=>{const on=RD.i==6;RD.fr=radFrames();radSet(on?6:RD.i)},300000)}
+ if(!RD.map){const m=RD.el.querySelector('.rm');RD.map=L.map(m,{zoomControl:false,attributionControl:false}).setView(c,8);RD.map.createPane('basep').style.zIndex=150;L.control.zoom({position:'topright'}).addTo(RD.map);baseVec(RD.map,L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:14,pane:'basep'}).addTo(RD.map));RD.lay=L.tileLayer.wms('https://ilmgs.envir.ee/geoserver/ilm/wms',{layers:'ilm:cmp_cap',styles:'',format:'image/png',transparent:true,version:'1.1.1',opacity:.8,time:'x'}).addTo(RD.map);RD.mk=L.marker(c,{icon:L.divIcon({className:'',html:'<div class="pinm"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false,keyboard:false}).addTo(RD.map);radSet(6);setInterval(()=>{const on=RD.i==6;RD.fr=radFrames();radSet(on?6:RD.i)},300000)}
  else{RD.mk.setLatLng(c);RD.map.panTo(c,{animate:false});setTimeout(()=>RD.map.invalidateSize(),60)}}
 async function bkFile(f){if(!f)return;try{const x=JSON.parse(await f.text());if(!x||!Array.isArray(x.projects))throw 0;if(!confirm('Asendan praegused andmed failis olevatega?'))return;S=x;save();r();syDirty&&syDirty()}catch(e){alert('Vigane varukoopia-fail')}}
 function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=>String(Math.round(v*10)/10).replace('.',','),pill=(t,c)=>`<span class="wxp" style="${c||''}">${t}</span>`,
