@@ -43,6 +43,7 @@ details.more{background:#1e293b;border:1px solid #334155;border-radius:1rem;padd
 .sec details.more{background:transparent;border:0;padding:.4rem 0 0;border-top:1px solid #334155;margin-top:.3rem}
 
 .wx{border-radius:1.25rem;padding:1rem;border:1px solid #334155;background:linear-gradient(160deg,var(--a,#1e293b),#0f172a 75%)}
+.wxm{flex:1;display:grid;gap:.4rem;padding:0 .9rem;align-self:center;min-width:0}.wxm div{display:flex;justify-content:space-between;gap:.5rem;font-size:.72rem;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.25rem}.wxm b{color:#f1f5f9;font-size:.82rem;white-space:nowrap}.wxs{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem;margin-top:.7rem}.wxs div{background:rgba(255,255,255,.05);border-radius:.75rem;padding:.4rem 0;text-align:center;line-height:1.25}.wxs small{display:block;font-size:.62rem;color:#94a3b8}.wxs b{display:block;font-size:.92rem;color:#f8fafc}.wxs i{font-style:normal;font-size:.62rem;color:#60a5fa}
 .wx.sun{--a:#3d2c0a}.wx.rain{--a:#0f2a45}.wx.night{--a:#1c1a45}.wx.cloud{--a:#1f2937}.wx.warn{border-color:#b45309}
 .wxr{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.wxp{font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;background:#0f172a;border:1px solid #334155;color:#cbd5e1;white-space:nowrap}
 .wxt{font-size:4.2rem;line-height:1;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.wxd{font-size:2.2rem;vertical-align:top;color:#fbbf24}
@@ -483,10 +484,14 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
   :soon?['#33230a','#fcd34d','🌧',esc(mc.summary60||'Vihm lähedal')+' (tunni tõenäosus '+hp+'%)']
   :gustH.length?['#33230a','#fcd34d','💨','Puhangud 11+ m/s '+hh(gustH)]
   :['#16222f','#cbd5e1','ⓘ','Prognoos ei näita sadu'+(inw?' call–wrap ajal':'')+'. Lühiajalise vihma jaoks vaata radarit.'],
+ fl=(()=>{if(tNow==null||ws==null)return null;const v=ws*3.6;if(tNow>10||v<4.8)return tNow;const q=Math.pow(v,.16);return 13.12+.6215*tNow-11.37*q+.3965*tNow*q})(),
+ tr=(()=>{const a=(inw?win:rows).map(h=>+h.temperatureValue).filter(isFinite);return a.length?[Math.min(...a),Math.max(...a)]:null})(),
+ xs=[fl!=null?`<div><span>Tundub nagu</span><b>${Math.round(fl)}°</b></div>`:'',tr?`<div><span>${inw?'Call–wrap':'12 h'}</span><b>${Math.round(tr[0])}° / ${Math.round(tr[1])}°</b></div>`:'',hu!=null?`<div><span>Niiskus</span><b>${Math.round(hu)}%</b></div>`:''].filter(Boolean),
  d=W.at&&new Date(W.at);
  e.innerHTML=`<div class="wx ${cls} ${warn?'warn':''}">
  ${head(d&&!isNaN(d)?'Uuendatud '+tf(d.getHours()*60+d.getMinutes()):'Live',warn?'background:#7c4a03;color:#fde68a':'')}
- <div class="wxr" style="margin-top:.5rem"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div>${wxIco(ph,night)}</div>
+ <div class="wxr" style="margin-top:.5rem"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div>${xs.length?`<div class="wxm">${xs.join('')}</div>`:''}${wxIco(ph,night)}</div>
+ ${H.length>1?`<div class="wxs">${H.slice(0,6).map((h,k)=>{const t=+h.temperatureValue,r=rp(h);return `<div><small>${k?h.date.slice(11,13)+':00':'Nüüd'}</small><b>${isFinite(t)?Math.round(t)+'°':'–'}</b><i>${r>0?r+'%':'·'}</i></div>`}).join('')}</div>`:''}
  <div class="wxv" style="background:${verdict[0]};color:${verdict[1]}"><span>${verdict[2]}</span><span>${verdict[3]}</span></div>
  <div id="radslot"></div>
  <a class="wxrad" href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/radar/" target="_blank" rel="noopener">🌧 Ava EMHI vihmaradar täisekraanil ↗</a>
