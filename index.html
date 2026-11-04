@@ -253,10 +253,11 @@ function r(){
  $('#nav').innerHTML=TABS.map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
  $('#app').innerHTML={day:vHome2,crew:vCrew2,gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
 
+function wrapStart(p){try{const sh=planSheet(p),r=sh&&sh.rows&&sh.rows.find(x=>/start of wrap|wrap start/i.test(x.label));if(r)return tf(r.t)}catch(e){}return p.wrap}
 function tick(){const e=$('#cd');if(!e)return;const p=P(),l=$('#cdl'),nx=$('#cdn'),n=new Date(),s=n.getHours()*3600+n.getMinutes()*60+n.getSeconds(),hms=t=>[t/3600|0,(t%3600)/60|0,t%60].map(x=>String(x).padStart(2,'0')).join(':'),set=(lab,t,cls)=>{if(l)l.textContent=lab;e.textContent=hms(Math.max(0,t));e.className='text-5xl font-extrabold tabular-nums '+cls};
  if(p.date!=workDay()){if(l)l.textContent='Lõuna';e.textContent=p.lunch||'--:--';e.className='text-4xl font-extrabold text-slate-300 tabular-nums';if(nx)nx.textContent='';return}
  const wc=(p.crew||[]).filter(c=>c.call);if(wc.length&&wc.every(c=>c.act)){const rl=a=>(tm(a)-tm(p.call)+1440)%1440,mx=wc.map(c=>c.act).sort((a,b)=>rl(b)-rl(a))[0];if(l)l.textContent='Päev lõppenud · wrap märgitud';e.textContent=mx;e.className='text-5xl font-extrabold tabular-nums text-green-400';if(nx)nx.textContent='';return}
- const cs=tm(p.call)*60,rel=t=>(t-cs+86400)%86400,nr=rel(s),lu=rel(tm(p.lunch)*60),mx=rule(p,'max'),lim=(mx?mx.val:12)*3600,we=rel(tm(p.wrap)*60);
+ const cs=tm(p.call)*60,rel=t=>(t-cs+86400)%86400,nr=rel(s),lu=rel(tm(p.lunch)*60),mx=rule(p,'max'),lim=(mx?mx.val:12)*3600,we=rel(tm(wrapStart(p))*60);
  if(nr>=16*3600||(p.date==today()&&s<cs)){if(l)l.textContent='Call\'ini';e.textContent=hms(cs-s<0?cs-s+86400:cs-s);e.className='text-4xl font-extrabold text-slate-300 tabular-nums'}
  else if(nr<lu)set('Lõunani',lu-nr,'text-amber-400');
  else if(nr<we)set('Wrapi alguseni',we-nr,'text-amber-400');else set('Wrap on alanud',nr-we,'text-slate-300');
