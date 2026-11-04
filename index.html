@@ -380,9 +380,9 @@ function wxPlan(p){
  if(use=='loc'&&!cOk&&!p.loc)use='manual';
  const nm=(la,lo,src)=>{const n=nearest(la,lo),sh=n.n.split(',')[0];return {qs:[...new Set([n.n,sh,'Tallinn'])],sig:use+'|'+n.n,src,ref:`lähim koht ${n.n}, ~${Math.round(n.d)} km`,ex:[la,lo]}};
  if(use=='gps')return nm(GPS.lat,GPS.lon,`seadme GPS (±${GPS.acc} m)`);
- const mv=use=='loc'?wxMove(p):null;if(mv){const c=String(mv.a).split(',').map(s=>s.trim()).filter(s=>s&&!/\d/.test(s)&&!/^(eesti|estonia)$/i.test(s)),qs=[...new Set([c.slice(-2).join(', '),c[c.length-1]].filter(Boolean))];return {qs:[...qs,'Tallinn'],sig:'l|'+(qs[0]||''),src:'call sheeti ajakava ('+mv.n+')',ref:''}}
+ const mv=use=='loc'?wxMove(p):null;if(mv){const c=String(mv.a).split(',').map(s=>s.trim()).filter(s=>s&&!/\d/.test(s)&&!/^(eesti|estonia)$/i.test(s)),qs=[...new Set([c.slice(-2).join(', '),c[c.length-1]].filter(Boolean))];return {qs:[...qs,'Tallinn'],sig:'a|'+mv.a,addr:mv.a,src:'call sheeti ajakava ('+mv.n+')',ref:''}}
  if(use=='loc'&&cOk)return nm(p.clat,p.clon,'call sheeti asukoha pin');
- if(use=='loc'){const c=String(p.loc).split(',').map(s=>s.trim()).filter(s=>s&&!/\d/.test(s)&&!/^(eesti|estonia)$/i.test(s)),qs=[...new Set([c.slice(-2).join(', '),c[c.length-1],p.wq].filter(Boolean))];return {qs:[...(qs.length?qs:[]),'Tallinn'],sig:'l|'+(qs[0]||''),src:'call sheeti aadress',ref:''}}
+ if(use=='loc'){const c=String(p.loc).split(',').map(s=>s.trim()).filter(s=>s&&!/\d/.test(s)&&!/^(eesti|estonia)$/i.test(s)),qs=[...new Set([c.slice(-2).join(', '),c[c.length-1],p.wq].filter(Boolean))];return {qs:[...(qs.length?qs:[]),'Tallinn'],sig:'a|'+String(p.loc),addr:String(p.loc),src:'call sheeti aadress',ref:''}}
  const q=p.wq||'Tallinn';return {qs:[q],sig:'m|'+q,src:'käsitsi',ref:''}}
 const pinL=(l)=>{const c=l.c||coordsFrom(l.u);return {m:l.u||(c?'https://www.google.com/maps/search/?api=1&query='+c[0]+','+c[1]:mapL(l.a)),w:c?'https://waze.com/ul?ll='+c[0]+','+c[1]+'&navigate=yes':wazeL(l.a||''),ws:c?'waze://?ll='+c[0]+','+c[1]+'&navigate=yes':'waze://?q='+encodeURIComponent(l.a||'')+'&navigate=yes',ww:c?'https://www.waze.com/live-map/directions?to=ll.'+c[0]+'%2C'+c[1]:'https://www.waze.com/live-map/directions?to='+encodeURIComponent(l.a||'')}};
 const IOS=(()=>{try{return /iPhone|iPad|iPod/.test(navigator.userAgent||'')||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1)}catch(e){return false}})();
@@ -390,6 +390,7 @@ let MCP=true,W={},WK='',busy=false;
 const jp=x=>{try{return typeof x=='string'?JSON.parse(x):x}catch(e){return null}};
 const WMO={0:'Selge',1:'Peamiselt selge',2:'Vahelduv pilvisus',3:'Pilves',45:'Udu',48:'Härmatisudu',51:'Uduvihm',53:'Uduvihm',55:'Tugev uduvihm',56:'Jäätuv uduvihm',57:'Jäätuv uduvihm',61:'Nõrk vihm',63:'Vihm',65:'Tugev vihm',66:'Jäävihm',67:'Jäävihm',71:'Nõrk lumi',73:'Lumi',75:'Tugev lumi',77:'Lumetera',80:'Hoovihm',81:'Hoovihm',82:'Tugev hoovihm',85:'Lumehoog',86:'Tugev lumehoog',95:'Äike',96:'Äike ja rahe',99:'Äike ja rahe'};
 async function initMcp(){try{await gpsAuto()}catch(e){}startWx();setInterval(()=>{WK='';startWx()},300000)}
+async function geoAddr(q){try{const K='bbgeo',M=JSON.parse(localStorage.getItem(K)||'{}');if(M[q])return M[q];const pt=q.replace(/\s+/g,' ').split(',').map(x=>x.trim()),vs=[pt.join(', ')];if(pt.length>2)vs.push(pt.slice(1).join(', '));let j=null;for(const v of vs){const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ee,fi,lv&q='+encodeURIComponent(v));const x=await r.json();if(x&&x[0]){j=x;break}}if(!j)return null;const o={lat:+j[0].lat,lon:+j[0].lon};M[q]=o;try{localStorage.setItem(K,JSON.stringify(M))}catch(e){}return o}catch(e){return null}}
 async function geo(q){const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=5&language=et&format=json');const j=await r.json();const rs=(j.results||[]).filter(x=>/^(EE|FI|LV|LT|SE)$/.test(x.country_code||''));return rs[0]||null}
 async function startWx(){
  const p=P(),wr=wxPlan(p);if(wr.ex&&(Math.abs((p.lat||0)-wr.ex[0])>.002||Math.abs((p.lon||0)-wr.ex[1])>.002)){p.lat=+wr.ex[0].toFixed(5);p.lon=+wr.ex[1].toFixed(5);save();setTimeout(r,0)}
@@ -398,7 +399,7 @@ async function startWx(){
  try{
   let la,lo;
   if(wr.ex){la=wr.ex[0];lo=wr.ex[1];if(!p.wname){p.wname=nearest(la,lo).n.split(',')[0];p.wsrc=wr.src;p.wref=wr.ref;save()}}
-  else{if(!p.wk||!p.wla){let h=null;for(const q0 of wr.qs){h=await geo(q0);if(h)break}if(!h){W.err='nf';paintWx();busy=false;return}p.wk='g';p.wla=h.latitude;p.wlo=h.longitude;p.wname=h.name;p.wsrc=wr.src;p.wref=wr.ref;save()}la=p.wla;lo=p.wlo}
+  else{if(!p.wk||!p.wla){let h=null;if(wr.addr){const a=await geoAddr(wr.addr);if(a)h={latitude:a.lat,longitude:a.lon,name:(wr.qs[0]||wr.addr).split(',')[0]}}if(!h)for(const q0 of wr.qs){h=await geo(q0);if(h)break}if(!h){W.err='nf';paintWx();busy=false;return}p.wk='g';p.wla=h.latitude;p.wlo=h.longitude;p.wname=h.name;p.wsrc=wr.src;p.wref=wr.ref;save()}la=p.wla;lo=p.wlo}
   if(!wr.ex&&(Math.abs((p.lat||0)-la)>.002||Math.abs((p.lon||0)-lo)>.002)){p.lat=+(+la).toFixed(5);p.lon=+(+lo).toFixed(5);save();setTimeout(r,0)}
   const u='https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m&minutely_15=precipitation&forecast_minutely_15=4&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,relative_humidity_2m&timezone=Europe%2FTallinn&forecast_days=3';
   const j=await (await fetch(u)).json();if(!j.current)throw new Error('nodata');
@@ -667,9 +668,12 @@ function planHTML(p){const s=planSheet(p);if(!s||!(s.rows||[]).length)return '';
 function planCard(p){const s=planSheet(p);if(!s)return '';const R=s.rows||[],k=nowIdx(s),h=planHTML(p);
  const sum=R.length?(k>=0?`Praegu ${tf(R[k].t)} ${esc(R[k].label)}`+(R[k+1]?` · järgmine ${tf(R[k+1].t)} ${esc(R[k+1].label)}`:''):`${R.length} punkti`):'';
  return `<details class="card"><summary class="font-bold">Päevaplaan${sum?` <span class="sub font-normal">${sum}</span>`:''}</summary>${h?`<div id="plan" class="mt-2">${h}</div>`:''}<button class="btn w-full mt-2" onclick="csid='${s.id}';tab='cs';r()">Ava call sheet</button></details>`}
+const CSL={};
+function csLines(id,src){if(id in CSL)return;CSL[id]=null;const im=new Image;im.onload=()=>{try{const W=1000,H=Math.round(im.naturalHeight*W/im.naturalWidth),cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.drawImage(im,0,0,W,H);const d=x.getImageData(0,0,W,H).data,L=[];let run=-1;for(let y=0;y<H;y++){let n=0;for(let X=100;X<900;X+=2){const i=(y*W+X)*4;if(d[i]*.3+d[i+1]*.59+d[i+2]*.11<200)n++}const hit=n/400>.55;if(hit&&run<0)run=y;if(!hit&&run>=0){L.push((run+y-1)/2/H);run=-1}}CSL[id]=L.length>=3?L:[];paintHL()}catch(e){CSL[id]=[]}};im.src=src}
+function hlBox(r,L){if(!L||L.length<3)return [r.top,r.bot];const c=r.top+.007;let up=null,dn=null;for(const y of L){if(y<=c-.001)up=y;else{dn=y;break}}return up!=null&&dn!=null&&dn-up<.12&&dn-up>.008?[up,dn]:[r.top,r.bot]}
 function paintHL(){const p=P(),s=planSheet(p),k1=p.date+'|'+(s?s.id:'')+'|'+(s?nowIdx(s):-9);if(k1!==hlKey){hlKey=k1;const pl=$('#plan');if(pl)pl.innerHTML=planHTML(p)}
- const cs=csCur(p),el=$('#hl'),t=$('#hlt');if(!el||!t||!cs)return;const R=cs.rows||[],k=nowIdx(cs);
- if(k>=0){const r=R[k];el.style.display='block';el.style.top=(r.top*100)+'%';el.style.height=Math.max(1.5,(r.bot-r.top)*100)+'%';t.textContent='Praegu: '+tf(r.t)+' '+r.label+(R[k+1]?'  ·  Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label:'')}
+ const cs=csCur(p),el=$('#hl'),t=$('#hlt');if(!el||!t||!cs)return;if(IMGC[cs.id])csLines(cs.id,IMGC[cs.id]);const R=cs.rows||[],k=nowIdx(cs);
+ if(k>=0){const r=R[k];el.style.display='block';const bx=hlBox(r,CSL[cs.id]);el.style.top=(bx[0]*100)+'%';el.style.height=Math.max(1.5,(bx[1]-bx[0])*100)+'%';t.textContent='Praegu: '+tf(r.t)+' '+r.label+(R[k+1]?'  ·  Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label:'')}
  else{el.style.display='none';t.textContent=!R.length?'Päevaplaani kellaaegu sellelt lehelt ei leitud.':(csDate(cs)==today()?'Päevaplaan pole veel alanud või on lõppenud.':'See pole tänase päeva call sheet.')}}
 function loadCsImg(){if(tab!='cs')return;const s=csCur(P());if(!s)return;imgGet(s.id).then(v=>{const im=$('#csimg');if(!im)return;if(v){im.src=v;paintHL()}else{const n=$('#csnoimg');if(n)n.style.display='block'}})}
 let csScale=1;
