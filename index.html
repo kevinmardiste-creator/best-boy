@@ -173,7 +173,7 @@ const gOwn=p=>(p.gear||[]).filter(g=>!g.src||!gLs(p)[g.src]);
 function gDef(p){const L=gLs(p);if(!Object.keys(L).length){gl='';return}if(gl=='ALL'||(gl=='own'&&gOwn(p).length)||L[gl])return;gl=gMain(p)}
 const gIn=g=>{if(!gl||gl=='ALL')return true;const L=gLs(P());return gl=='own'?(!g.src||!L[g.src]):g.src==gl};
 const gMatch=g=>gIn(g)&&(gf=='all'||(gf=='miss'&&!gFull(g)&&!g.note)||(gf=='bad'&&gB(g)>0))&&(!gq||(g.name+' '+g.cat+' '+(g.nt||'')).toLowerCase().includes(gq));
-function gToday(){try{S.projects.forEach(p=>{const t=today();if(p.date==t)return;p.date=t;p.cd=p.cd||{};p.dd=p.dd||{};p.crew=p.cd[t]=p.cd[t]||[];if(p.dd[t])loadDay(p)})}catch(e){}}
+function gToday(){try{S.projects.forEach(p=>{const t=workDayP(p);if(p.date==t)return;p.date=t;p.cd=p.cd||{};p.dd=p.dd||{};p.crew=p.cd[t]=p.cd[t]||[];if(p.dd[t])loadDay(p)})}catch(e){}}
 const DGN=['Aputure 600d','Tuubivalgustid','M18 HMI','4K HMI','2K Fresnel','Junior 1K','Stingerid 20m','Jaotuskarbid','C-standid','Flagid ja silkid','Geelid','Gaffer-teip','Klambrid','Pirnid'];
 function gMig(){let ch=0;S.projects.forEach(p=>{if(p.glists&&Object.keys(p.glists).length){const n=(p.gear||[]).length;p.gear=(p.gear||[]).filter(g=>g.src||g.nt||g.bad||!DGN.includes(g.name));if(p.gear.length!=n)ch=1}});S.projects.forEach(p=>(p.gear||[]).forEach(g=>{if(CATMAP[g.cat]){g.cat=CATMAP[g.cat];ch=1}}));if(ch)save()}
 function gRow(g){const ed=gedit==g.id,q=gQ(g),o=gO(g),b=gB(g),full=gFull(g),nt=g.note===true;
@@ -264,7 +264,7 @@ function tick(){const e=$('#cd');if(!e)return;const p=P(),l=$('#cdl'),nx=$('#cdn
  if(p.date!=workDay()){if(l)l.textContent='Lõuna';e.textContent=p.lunch||'--:--';e.className='text-4xl font-extrabold text-slate-300 tabular-nums';if(nx)nx.textContent='';return}
  const wc=(p.crew||[]).filter(c=>c.call);if(wc.length&&wc.every(c=>c.act)){const rl=a=>(tm(a)-tm(p.call)+1440)%1440,mx=wc.map(c=>c.act).sort((a,b)=>rl(b)-rl(a))[0];if(l)l.textContent='Päev lõppenud · wrap märgitud';e.textContent=mx;e.className='text-5xl font-extrabold tabular-nums text-green-400';if(nx)nx.textContent='';return}
  const cs=tm(p.call)*60,rel=t=>(t-cs+86400)%86400,nr=rel(s),lu=rel(tm(p.lunch)*60),mx=rule(p,'max'),lim=(mx?mx.val:12)*3600,we=rel(tm(wrapStart(p))*60);
- if(nr>=16*3600||(p.date==today()&&s<cs)){if(l)l.textContent='Call\'ini';e.textContent=hms(cs-s<0?cs-s+86400:cs-s);e.className='text-4xl font-extrabold text-slate-300 tabular-nums'}
+ if(nr>=16*3600||(p.date==workDay()&&s<cs)){if(l)l.textContent='Call\'ini';e.textContent=hms(cs-s<0?cs-s+86400:cs-s);e.className='text-4xl font-extrabold text-slate-300 tabular-nums'}
  else if(nr<lu)set('Lõunani',lu-nr,'text-amber-400');
  else if(nr<we)set('Wrapi alguseni',we-nr,'text-amber-400');else set('Wrap on alanud',nr-we,'text-slate-300');
  if(nx){nx.textContent='';const sh=planSheet(p);if(sh&&sh.rows&&sh.rows.length){const k=nowIdx(sh),R=sh.rows;if(k>=0&&R[k+1]){const m=Math.floor(s/60),d=((R[k+1].t%1440)-m+1440)%1440;nx.textContent='Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label+' · '+fm(d)+' pärast'}}}}
@@ -273,7 +273,8 @@ let out='';
 const spanM=c=>(tm(c.act||c.wrap)-tm(c.call)+1440)%1440;
 function dur(c){return spanM(c)}
 const dayAdd=(d,k)=>{const t=new Date(d+'T12:00:00');t.setDate(t.getDate()+k);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
-function workDay(){const td=today(),p=S.projects.find(q=>q.id===S.cur)||S.projects[0],e=p&&p.dd&&p.dd[dayAdd(td,-1)],n=new Date(),m=n.getHours()*60+n.getMinutes();
+function workDay(){return workDayP(S.projects.find(q=>q.id===S.cur)||S.projects[0])}
+function workDayP(p){const td=today(),e=p&&p.dd&&p.dd[dayAdd(td,-1)],n=new Date(),m=n.getHours()*60+n.getMinutes();
  if(e&&e.kind!='event'&&e.call&&e.wrap&&tm(e.wrap)<tm(e.call)&&m<tm(e.wrap)+120)return dayAdd(td,-1);return td}
 function streakOf(p,c,date){date=date||p.date;let n=1,d=dayAdd(date,-1);while(n<30&&((p.cd||{})[d]||[]).some(x=>x.name==c.name)){n++;d=dayAdd(d,-1)}return n}
 function prevWrap(p,c,date){const y=((p.cd||{})[dayAdd(date||p.date,-1)]||[]).find(x=>x.name==c.name);return y?(y.act||y.wrap||''):''}
