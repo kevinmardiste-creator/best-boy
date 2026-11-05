@@ -155,14 +155,14 @@ const RMAP=[[/^lamps \/ led units/i,'Valgustid (LED)'],[/^lamps \/ led accessori
 const rCat=h=>{for(const [re,c] of RMAP)if(re.test(h))return c;return null};
 function parseRental(t){const jobs=[],NEW=/DETAILED EQUIPMENT LIST/i.test(t);let J=null,cat='Muu',det=false,stop=false;
  t.split('\n').forEach(raw=>{const l=raw.replace(/\s+/g,' ').trim();if(!l||stop)return;
-  let m=l.match(/^#J(\d+)\s*(.*)$/);
+  let m=NEW?l.match(/#J(\d+)\b\s*(.*)$/):l.match(/^#J(\d+)\s*(.*)$/);
   if(m){const code='J'+m[1];if(J&&J.code==code)return;J={code,name:m[2].replace(/^Seconds 3 \/ /i,''),pick:'',ret:'',items:[],on:true};jobs.push(J);cat='Muu';det=false;return}
   if(!J)return;
   if(NEW){
    if(/^(Total weight|Safety & use)/i.test(l)){if(det)stop=true;return}
    if(!det){let q;if(/^QTY ITEM.*ASSET/i.test(l)){det=true;return}
-    if(!J.name&&(q=l.match(/^Seconds 3 \/ (.+)$/i))){J.name=q[1];return}
-    if(q=l.match(/^(\d\d\/\d\d\/\d{4} \d\d:\d\d)\s+(\d\d\/\d\d\/\d{4} \d\d:\d\d)/)){J.pick=q[1];J.ret=q[2]}
+    if(!J.name&&(q=l.match(/Seconds 3 \/ (.+?)(?:\s+PROJECT\b.*)?$/i))){J.name=q[1].trim();return}
+    if(q=l.match(/(\d\d\/\d\d\/\d{4} \d\d:\d\d)\s+(\d\d\/\d\d\/\d{4} \d\d:\d\d)/)){J.pick=q[1];J.ret=q[2]}
     return}
    if(/^(Page \d+ \/ \d+|High Voltage|Generated )/i.test(l))return;
    const hc=!/^\d/.test(l)&&rCat(l);if(hc){cat=hc;return}
