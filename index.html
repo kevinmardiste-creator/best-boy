@@ -691,6 +691,9 @@ const csVers=(p,d)=>(p.sheets||[]).filter(s=>s.i&&csDate(s)==d).sort((a,b)=>(a.t
 const fmtD=d=>d.slice(8)+'.'+d.slice(5,7)+'.'+d.slice(0,4)+' '+WD[new Date(d).getDay()];
 function csCur(p){const ds=csDates(p);if(!ds.length)return null;let s=(p.sheets||[]).find(x=>x.id==csid&&x.i);if(!s){const d=ds.includes(p.date)?p.date:(ds.find(x=>x>=workDay())||ds[ds.length-1]),V=csVers(p,d);s=V[V.length-1]}return s}
 function planSheet(p){const V=csVers(p,p.date);return V[V.length-1]}
+function ltxt(l){l=String(l||'');const seg=l.split(/\s*·\s*/).filter(Boolean),dn=(l.match(/\b(day|night|evening|morning|dawn|dusk|sunrise|sunset)\b/i)||[])[1],keep=seg.filter(x=>/^(light|grip|electric|gaffer|sun|dusk|dawn|ext|int)\b/i.test(x)||/^(INT|EXT)[.\/\s]/i.test(x));
+ if(dn||keep.length){const o=[];keep.filter(x=>/^(int|ext)[.\/\s]/i.test(x)).forEach(x=>o.push(x));if(dn)o.push(dn);keep.filter(x=>!/^(int|ext)[.\/\s]/i.test(x)).forEach(x=>o.push(x));return o.join(' · ')}
+ if(/\b(prep|costume|muah|make-?up|hair|wardrobe)\b/i.test(l))return null;return seg.filter(x=>!/^\d{1,2}:\d\d$/.test(x)).join(' · ')||l}
 function nowIdx(s){const R=s.rows||[];if(!R.length)return -1;const n=new Date(),td=today(),y=new Date(n.getTime()-864e5),yd=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0'),dt=csDate(s);let m=n.getHours()*60+n.getMinutes();
  if(dt==td){if(m<R[0].t-240)m+=1440}else if(dt==yd&&m<720)m+=1440;else return -1;
  let k=-1;R.forEach((r,i)=>{if(r.t<=m)k=i});if(k==R.length-1&&m>R[k].t+240)return -1;return k}
@@ -701,7 +704,7 @@ function diffSheets(a,b){const o=[],F={call:'Call',wrap:'Wrap',lunch:'Lõuna',lo
  Object.keys(A).forEach(n=>{if(!B[n])o.push(`Eemaldati meeskonnast: ${n}`)});
  const ka=new Set((a.rows||[]).map(r=>tf(r.t)+' '+r.label)),kb=new Set((b.rows||[]).map(r=>tf(r.t)+' '+r.label));
  kb.forEach(k=>{if(!ka.has(k))o.push('Päevaplaan uus/muutunud: '+k)});ka.forEach(k=>{if(!kb.has(k))o.push('Päevaplaanist kadus: '+k)});return o}
-function planHTML(p){const s=planSheet(p);if(!s||!(s.rows||[]).length)return '';const k=nowIdx(s);return s.rows.map((r,i)=>`<div class="flex gap-2 py-1 px-2 rounded ${i==k?'bg-amber-500 text-slate-900 font-bold':(k>=0&&i<k?'text-slate-400':'')}"><span class="tabular-nums w-14">${tf(r.t)}</span><span class="flex-1">${esc(r.label)}</span></div>`).join('')}
+function planHTML(p){const s=planSheet(p);if(!s||!(s.rows||[]).length)return '';const k=nowIdx(s);return s.rows.map((r,i)=>{const lx=ltxt(r.label);if(lx===null&&i!=k)return '';r={...r,label:lx===null?r.label:lx};return `<div class="flex gap-2 py-1 px-2 rounded ${i==k?'bg-amber-500 text-slate-900 font-bold':(k>=0&&i<k?'text-slate-400':'')}"><span class="tabular-nums w-14">${tf(r.t)}</span><span class="flex-1">${esc(r.label)}</span></div>`}).join('')}
 function planCard(p){const s=planSheet(p);if(!s)return '';const R=s.rows||[],k=nowIdx(s),h=planHTML(p);
  const sum=R.length?(k>=0?`Praegu ${tf(R[k].t)} ${esc(R[k].label)}`+(R[k+1]?` · järgmine ${tf(R[k+1].t)} ${esc(R[k+1].label)}`:''):`${R.length} punkti`):'';
  return `<details class="card"><summary class="font-bold">Päevaplaan${sum?` <span class="sub font-normal">${sum}</span>`:''}</summary>${h?`<div id="plan" class="mt-2">${h}</div>`:''}<button class="btn w-full mt-2" onclick="csid='${s.id}';tab='cs';r()">Ava call sheet</button></details>`}
@@ -710,7 +713,7 @@ function csLines(id,src){if(id in CSL)return;CSL[id]=null;const im=new Image;im.
 function hlBox(r,L){if(!L||L.length<3)return [r.top,r.bot];const c=r.top+.007;let up=null,dn=null;for(const y of L){if(y<=c-.001)up=y;else{dn=y;break}}return up!=null&&dn!=null&&dn-up<.12&&dn-up>.008?[up,dn]:[r.top,r.bot]}
 function paintHL(){const p=P(),s=planSheet(p),k1=p.date+'|'+(s?s.id:'')+'|'+(s?nowIdx(s):-9);if(k1!==hlKey){hlKey=k1;const pl=$('#plan');if(pl)pl.innerHTML=planHTML(p)}
  const cs=csCur(p),el=$('#hl'),t=$('#hlt');if(!el||!t||!cs)return;if(IMGC[cs.id])csLines(cs.id,IMGC[cs.id]);const R=cs.rows||[],k=nowIdx(cs);
- if(k>=0){const r=R[k];el.style.display='block';const bx=hlBox(r,CSL[cs.id]);el.style.top=(bx[0]*100)+'%';el.style.height=Math.max(1.5,(bx[1]-bx[0])*100)+'%';t.textContent='Praegu: '+tf(r.t)+' '+r.label+(R[k+1]?'  ·  Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label:'')}
+ if(k>=0){const r=R[k];el.style.display='block';const bx=hlBox(r,CSL[cs.id]);el.style.top=(bx[0]*100)+'%';el.style.height=Math.max(1.5,(bx[1]-bx[0])*100)+'%';{let c=k,cl=ltxt(r.label);while(cl===null&&c>0){c--;cl=ltxt(R[c].label)}if(cl===null)cl=r.label;let n=k+1,nl=null;while(n<R.length&&(nl=ltxt(R[n].label))===null)n++;t.textContent='Praegu: '+tf(R[c].t)+' '+cl+(n<R.length?'  ·  Järgmine: '+tf(R[n].t)+' '+nl:'')}}
  else{el.style.display='none';t.textContent=!R.length?'Päevaplaani kellaaegu sellelt lehelt ei leitud.':(csDate(cs)==today()?'Päevaplaan pole veel alanud või on lõppenud.':'See pole tänase päeva call sheet.')}}
 function loadCsImg(){if(tab!='cs')return;const s=csCur(P());if(!s)return;imgGet(s.id).then(v=>{const im=$('#csimg');if(!im)return;if(v){im.src=v;paintHL()}else{const n=$('#csnoimg');if(n)n.style.display='block'}})}
 let csScale=1;
