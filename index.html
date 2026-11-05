@@ -330,7 +330,7 @@ function parseCS(){const t=$('#cs').value,p=P(),g=re=>{const m=t.match(re);retur
  p.cs=t;if(c){p.call=f(c);got.push('call '+p.call)}if(w){p.wrap=f(w);got.push('wrap '+p.wrap)}if(l){p.lunch=f(l);got.push('lõuna '+p.lunch)}if(a){p.loc=a;got.push('asukoht '+a)}
  save();r();$('#csr').textContent=got.length?'Leitud: '+got.join(', '):'Midagi ei leitud'}
 const mapL=a=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a),wazeL=a=>'https://waze.com/ul?q='+encodeURIComponent(a)+'&navigate=yes';
-const locs=p=>[...((p.loc||p.pin)?[{id:'main',n:p.ln||'Põhiasukoht',a:p.loc||'',u:p.pin,c:p.clat?[p.clat,p.clon]:null}]:[]),...xlOk(p.xl).map(x=>({id:'xl',n:x.n,a:x.a,u:x.u}))].filter((l,i,A)=>A.findIndex(z=>(z.a||'').toLowerCase()==(l.a||'').toLowerCase()&&(z.u||'')==(l.u||''))==i);
+const locs=p=>[...((p.loc||p.pin)?[{id:'main',n:p.ln||'LOC 1',a:p.loc||'',u:p.pin,c:p.clat?[p.clat,p.clon]:null}]:[]),...xlOk(p.xl).map(x=>({id:'xl',n:x.n,a:x.a,u:x.u}))].filter((l,i,A)=>A.findIndex(z=>(z.a||'').toLowerCase()==(l.a||'').toLowerCase()&&(z.u||'')==(l.u||''))==i);
 const WX={'Vihm':'kaitse valgustid ja jaotuskarbid vee eest, kontrolli RCD-d','Tugev tuul':'kinnita statiivid liivakottidega, silkid ja flagid maha','Torm':'peata kõrgel töö, kinnita kõik, kaitse elektrit','Külm/lumi':'jälgi akusid ja kaableid, kaitse tehnikat kondensaadi eest'};
 
 function wazeGo(ev,u){return true;if(!IOS)return true;ev.preventDefault();let left=false;const h=()=>{if(document.hidden)left=true};document.addEventListener('visibilitychange',h);window.addEventListener('pagehide',h);
@@ -364,7 +364,7 @@ function vHome(p){
  ${p.cs?`<details class="more"><summary>Call sheeti info</summary><pre class="whitespace-pre-wrap text-sm mt-2">${esc(p.cs)}</pre></details>`:''}
  <details class="more"><summary>Muuda päeva infot</summary><div class="grid grid-cols-2 gap-2 mt-2">
  <label class="sub">Päev${inp('number',p.day,"upd('day',+this.value)")}</label><label class="sub">Päevi kokku${inp('number',p.days,"upd('days',+this.value)")}</label>
- <label class="sub col-span-2">Põhiasukoht${inp('text',p.loc,"upd('loc',this.value)",'placeholder="Aadress"')}</label>
+ <label class="sub col-span-2">LOC 1 (päeva esimene asukoht)${inp('text',p.loc,"upd('loc',this.value)",'placeholder="Aadress"')}</label>
  <label class="sub col-span-2">Maps pin (link, valikuline)${inp('text',p.pin||'',"setPin(this.value.trim())",'placeholder="Kleebi Google Mapsi link"')}<span class="text-xs">${p.pin?(p.clat?'Koordinaadid loetud: '+(+p.clat).toFixed(5)+', '+(+p.clon).toFixed(5):'Link salvestatud, aga koordinaate sellest lugeda ei saa (lühilink?)'):'Kui call sheetil pini pole, kleebi siia oma link, siis kasutatakse seda navigeerimisel ja ilmale.'}</span></label>
  <label class="sub">Crew call${inp('time',p.call,"upd('call',this.value)")}</label><label class="sub">Wrap${inp('time',p.wrap,"upd('wrap',this.value)")}</label>
  <label class="sub col-span-2">Lõuna${inp('time',p.lunch,"upd('lunch',this.value)")}</label>
