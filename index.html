@@ -508,7 +508,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  <div id="radslot"></div>
  <a class="wxrad" href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/radar/" target="_blank" rel="noopener">🌧 Ava EMHI vihmaradar täisekraanil ↗</a>
  <div class="wxc">${wxChart(rows,inW,p)}<div class="wxl"><span><i style="background:#fbbf24"></i>°C</span><span><i style="background:#60a5fa"></i>sadu %</span>${inw?'<span><i style="background:#f59e0b;opacity:.5"></i>call–wrap</span>':''}</div></div>
- <div class="wxr" style="margin-top:.8rem"><span class="sub">${sn?`🌅 ${tf(sn[0])} · 🌇 ${tf(sn[1])}`:'Polaarpäev/-öö'}${(()=>{if(!sn)return '';const g=sun(p,6),c=sun(p,-6);return '<br>✨ kuldne tund '+(g?tf(sn[0])+'–'+tf(g[0])+' · '+tf(g[1])+'–'+tf(sn[1]):'kogu päev')+(c?'<br>🌆 koidik '+tf(c[0])+' · videvik '+tf(c[1]):'')})()}</span><span class="sub">Allikas: Open-Meteo</span></div>
+ <div class="wxr" style="margin-top:.8rem"><span class="sub">${sn?`🌅 ${tf(sn[0])} · 🌇 ${tf(sn[1])}`:'Polaarpäev/-öö'}</span><span class="sub">Allikas: Open-Meteo</span></div>
  </div>`}
 const MN=['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];let cmo=0;
 async function pdfText(f){const L=window.pdfjsLib;if(!L)throw new Error('PDF-lugeja ei laadinud');L.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const d=await L.getDocument({data:await f.arrayBuffer()}).promise;let out='';for(let i=1;i<=Math.min(d.numPages,20);i++){const c=await(await d.getPage(i)).getTextContent();let y=null;c.items.forEach(it=>{const yy=Math.round(it.transform[5]);out+=(y!==null&&Math.abs(yy-y)>3?'\n':' ')+it.str;y=yy});out+='\n'}return out}
