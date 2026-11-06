@@ -302,10 +302,10 @@ function flags(p,c,date){
  const pw=c.prev||prevWrap(p,c,date);if((x=rule(p,'rest'))&&pw){const g=(a-tm(pw)+1440)%1440;if(g<x.val*60)f.push(['red',`Puhkeaeg vaid ${fm(g)} (min ${x.val}h)`])}
  const sk=streakOf(p,c,date);if((x=rule(p,'week'))&&sk>x.val)f.push([sk>x.val+1?'red':'org',`${sk}. järjestikune tööpäev`]);
  return f}
-function sun(p){const d=new Date(),N=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5),R=Math.PI/180,g=2*Math.PI/365*(N-1),
+function sun(p,a){const d=new Date(),N=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5),R=Math.PI/180,g=2*Math.PI/365*(N-1),
  eq=229.18*(.000075+.001868*Math.cos(g)-.032077*Math.sin(g)-.014615*Math.cos(2*g)-.040849*Math.sin(2*g)),
  de=.006918-.399912*Math.cos(g)+.070257*Math.sin(g)-.006758*Math.cos(2*g)+.000907*Math.sin(2*g)-.002697*Math.cos(3*g)+.00148*Math.sin(3*g),
- h=Math.acos(Math.cos(90.833*R)/(Math.cos(p.lat*R)*Math.cos(de))-Math.tan(p.lat*R)*Math.tan(de))/R,z=-d.getTimezoneOffset();
+ h=Math.acos(Math.sin((a==null?-.833:a)*R)/(Math.cos(p.lat*R)*Math.cos(de))-Math.tan(p.lat*R)*Math.tan(de))/R,z=-d.getTimezoneOffset();
  return isNaN(h)?null:[720-4*(p.lon+h)-eq+z,720-4*(p.lon-h)-eq+z]}
 function wmsg(id){const p=P(),c=p.crew.find(x=>x.id==id),n=rule(p,'max')?.val||12;return `${c.name}, normaalpäev lõpeb ${tf(tm(c.call)+n*60)} (call ${c.call}, lõuna sees). Anna palun teada, kui wrap jääb sellest hilisemaks.`}
 function report(p){const L=[`Päevaaruanne – ${p.name}, päev ${p.day}/${p.days}, ${today()}`,`Asukoht: ${p.loc||'-'} | Call ${p.call}, wrap ${p.wrap}, lõuna ${p.lunch}`,'','Meeskond:'];
@@ -508,7 +508,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  <div id="radslot"></div>
  <a class="wxrad" href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/radar/" target="_blank" rel="noopener">🌧 Ava EMHI vihmaradar täisekraanil ↗</a>
  <div class="wxc">${wxChart(rows,inW,p)}<div class="wxl"><span><i style="background:#fbbf24"></i>°C</span><span><i style="background:#60a5fa"></i>sadu %</span>${inw?'<span><i style="background:#f59e0b;opacity:.5"></i>call–wrap</span>':''}</div></div>
- <div class="wxr" style="margin-top:.8rem"><span class="sub">${sn?`🌅 ${tf(sn[0])} · 🌇 ${tf(sn[1])}`:'Polaarpäev/-öö'}</span><span class="sub">Allikas: Open-Meteo</span></div>
+ <div class="wxr" style="margin-top:.8rem"><span class="sub">${sn?`🌅 ${tf(sn[0])} · 🌇 ${tf(sn[1])}`:'Polaarpäev/-öö'}${(()=>{if(!sn)return '';const g=sun(p,6),c=sun(p,-6);return '<br>✨ kuldne tund '+(g?tf(sn[0])+'–'+tf(g[0])+' · '+tf(g[1])+'–'+tf(sn[1]):'kogu päev')+(c?'<br>🌆 koidik '+tf(c[0])+' · videvik '+tf(c[1]):'')})()}</span><span class="sub">Allikas: Open-Meteo</span></div>
  </div>`}
 const MN=['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];let cmo=0;
 async function pdfText(f){const L=window.pdfjsLib;if(!L)throw new Error('PDF-lugeja ei laadinud');L.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const d=await L.getDocument({data:await f.arrayBuffer()}).promise;let out='';for(let i=1;i<=Math.min(d.numPages,20);i++){const c=await(await d.getPage(i)).getTextContent();let y=null;c.items.forEach(it=>{const yy=Math.round(it.transform[5]);out+=(y!==null&&Math.abs(yy-y)>3?'\n':' ')+it.str;y=yy});out+='\n'}return out}
@@ -718,7 +718,7 @@ function planCard(p){const s=planSheet(p);if(!s)return '';const R=s.rows||[],k=n
  return `<details class="card"><summary class="font-bold">Päevaplaan${sum?` <span class="sub font-normal">${sum}</span>`:''}</summary>${h?`<div id="plan" class="mt-2">${h}</div>`:''}<button class="btn w-full mt-2" onclick="csid='${s.id}';tab='cs';r()">Ava call sheet</button></details>`}
 const CSL={};
 function csLines(id,src){if(id in CSL)return;CSL[id]=null;const im=new Image;im.onload=()=>{try{const W=1000,H=Math.round(im.naturalHeight*W/im.naturalWidth),cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.drawImage(im,0,0,W,H);const d=x.getImageData(0,0,W,H).data,L=[];let run=-1;for(let y=0;y<H;y++){let n=0;for(let X=100;X<900;X+=2){const i=(y*W+X)*4;if(d[i]*.3+d[i+1]*.59+d[i+2]*.11<200)n++}const hit=n/400>.55;if(hit&&run<0)run=y;if(!hit&&run>=0){L.push((run+y-1)/2/H);run=-1}}CSL[id]=L.length>=3?L:[];paintHL()}catch(e){CSL[id]=[]}};im.src=src}
-function hlBox(r,L){if(!L||L.length<3)return [r.top,r.bot];const c=r.top+.007;let up=null,dn=null;for(const y of L){if(y<=c-.001)up=y;else{dn=y;break}}return up!=null&&dn!=null&&dn-up<.12&&dn-up>.008?[up,dn]:[r.top,r.bot]}
+function hlBox(r,L){const nr=v=>{let b=null,d=.011;for(const y of (L||[])){const e=Math.abs(y-v);if(e<d){d=e;b=y}}return b},u=nr(r.top),w=nr(r.bot),a=u!=null?u:r.top,z=w!=null?w:r.bot;return z-a>.006&&z-a<.12?[a,z]:[r.top,r.bot]}
 function paintHL(){const p=P(),s=planSheet(p),k1=p.date+'|'+(s?s.id:'')+'|'+(s?nowIdx(s):-9);if(k1!==hlKey){hlKey=k1;const pl=$('#plan');if(pl)pl.innerHTML=planHTML(p)}
  const cs=csCur(p),el=$('#hl'),t=$('#hlt');if(!el||!t||!cs)return;if(IMGC[cs.id])csLines(cs.id,IMGC[cs.id]);const R=cs.rows||[],k=nowIdx(cs);
  if(k>=0){const r=R[k];el.style.display='block';const bx=hlBox(r,CSL[cs.id]);el.style.top=(bx[0]*100)+'%';el.style.height=Math.max(1.5,(bx[1]-bx[0])*100)+'%';{let c=k,cl=ltxt(r.label);while(cl===null&&c>0){c--;cl=ltxt(R[c].label)}if(cl===null)cl=r.label;let n=k+1,nl=null;while(n<R.length&&(nl=ltxt(R[n].label))===null)n++;t.textContent='Praegu: '+tf(R[c].t)+' '+cl+(n<R.length?'  ·  Järgmine: '+tf(R[n].t)+' '+nl:'')}}
