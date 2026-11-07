@@ -491,12 +491,12 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  inW=h=>{const dd=Math.round((Date.parse(h.date.slice(0,10))-Date.parse(p.date))/864e5),t=dd*1440+tm(h.date.slice(11,16));return t>=a&&t<=b},
  win=H.filter(inW),inw=win.length>0,rows=H.slice(0,12),wr=inw?win:rows,
  wet=wr.filter(h=>rp(h)>=50||h.extended?.rainValue>0),gustH=wr.filter(h=>h.extended?.gustsValue>=40),
- real=x=>x.precipitationType&&!/^(none|null|0)$/i.test(String(x.precipitationType))&&!(x.dbz!=null&&x.dbz<=0),mcRain=(mc.minutes||[]).filter(real).length>=2,hp=H[0]?rp(H[0]):0,soon=mcRain&&hp>=20,alerts=(W.mc?.alerts||[]).length,warn=wet.length||gustH.length||soon||alerts,
+ real=x=>x.precipitationType&&!/^(none|null|0)$/i.test(String(x.precipitationType))&&!(x.dbz!=null&&x.dbz<=0),mcRain=(mc.minutes||[]).filter(real).length>=2,hp=H[0]?rp(H[0]):0,soon=mcRain&&hp>=20,alerts=(W.mc?.alerts||[]).length,warn=wet.length||gustH.length||soon||alerts||lw,
  hh=l=>l.length>1?l[0].date.slice(11,16)+'–'+l[l.length-1].date.slice(11,16):l[0].date.slice(11,16),
  tNow=(()=>{const v=parseFloat(String(c.temperature||'').replace(',','.'));return isFinite(v)?v:(H[0]?+H[0].temperatureValue:null)})(),
  ws=(()=>{const m=String(c.wind||'').match(/(\d+(?:[.,]\d+)?)\s*(km\/h|m\/s|mph)?/i);if(m){let v=parseFloat(m[1].replace(',','.'));const u=(m[2]||'km/h').toLowerCase();return u=='m/s'?v:u=='mph'?v*.447:v/3.6}const v=dn(H[0],/^wind(speed|value)?$/i);return v==null?null:v/3.6})(),
  gs=(()=>{const v=dn(c,/gust/i);const w=v!=null?v:(H[0]?.extended?.gustsValue??null);return w==null?null:w/3.6})(),
- hu=dn(c,/humid/i)??dn(H[0],/humid/i),rmax=wr.length?Math.max(...wr.map(rp)):hp,
+ hu=dn(c,/humid/i)??dn(H[0],/humid/i),fl=(()=>{if(tNow==null)return null;const T=tNow,w=ws==null?0:ws;if(T<=10&&w*3.6>4.8){const v=Math.pow(w*3.6,.16);return 13.12+.6215*T-11.37*v+.3965*T*v}const e=(hu==null?50:hu)/100*6.105*Math.exp(17.27*T/(237.7+T));return T+.33*e-.7*w-4})(),lift=wr.filter(h=>h.extended?.gustsValue/3.6>=12.5),liftNow=gs!=null&&gs>=12.5,lw=lift.length||liftNow,rmax=wr.length?Math.max(...wr.map(rp)):hp,
  now=new Date(),nm=now.getHours()*60+now.getMinutes(),night=sn?(nm<sn[0]||nm>sn[1]):false,ph=String(c.phrase||''),
  cls=alerts||wet.length?'rain':/vihm|sadu|tibu/i.test(ph)?'rain':night?'night':/päike|selge/i.test(ph)?'sun':'cloud',
  tile=(l,v,u,w,dec)=>{const ok=v!=null&&isFinite(v);return `<div class="wxk ${w?'wxw':''}"><small>${l}</small><b>${ok?(dec?f1(v):Math.round(v)):'–'}</b>${ok?`<i>${u}</i>`:''}</div>`},
@@ -508,8 +508,8 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  d=W.at&&new Date(W.at);
  e.innerHTML=`<div class="wx ${cls} ${warn?'warn':''}">
  ${head(d&&!isNaN(d)?'Uuendatud '+tf(d.getHours()*60+d.getMinutes()):'Live',warn?'background:#7c4a03;color:#fde68a':'')}
- <div class="wxr" style="margin-top:.5rem"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div><div class="wxg wxgm">${tile('Tuul',ws,'m/s',ws>=8,1)}${tile('Puhang',gs,'m/s',gs>=11,1)}${tile('Niiskus',hu,'%')}${tile(inw?'Sadu c–w':'Sadu 12 h',rmax,'%',rmax>=50)}</div>${wxIco(ph,night)}</div>
- <div class="wxv" style="background:${verdict[0]};color:${verdict[1]}"><span>${verdict[2]}</span><span>${verdict[3]}</span></div>
+ <div class="wxr" style="margin-top:.5rem"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div><div class="wxg wxgm">${tile('Tuul',ws,'m/s',ws>=8,1)}${tile('Puhang',gs,'m/s',gs>=11,1)}${tile('Tundub',fl,'°')}${tile(inw?'Sadu võttel':'Sadu 12 h',rmax,'%',rmax>=50)}</div>${wxIco(ph,night)}</div>
+ <div class="wxv" style="background:${verdict[0]};color:${verdict[1]}"><span>${verdict[2]}</span><span>${verdict[3]}</span></div>${lw?`<div class="wxv" style="background:#7f1d1d;color:#fecaca;margin-top:.4rem"><span>⚠</span><span>Tõstukid: puhangud ${f1(Math.max(liftNow?gs:0,...lift.map(h=>h.extended.gustsValue/3.6)))} m/s${lift.length?' '+hh(lift):' praegu'} (piir 12,5 m/s)</span></div>`:''}
  <div id="radslot"></div>
  <a class="wxrad" href="https://www.ilmateenistus.ee/ilm/ilmavaatlused/radar/" target="_blank" rel="noopener">🌧 Ava EMHI vihmaradar täisekraanil ↗</a>
  <div class="wxc">${wxChart(rows,inW,p)}<div class="wxl"><span><i style="background:#fbbf24"></i>°C</span><span><i style="background:#60a5fa"></i>sadu %</span>${inw?'<span><i style="background:#f59e0b;opacity:.5"></i>call–wrap</span>':''}</div></div>
