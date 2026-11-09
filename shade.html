@@ -396,7 +396,7 @@ function setSun(min,quiet){
  $('#sinfo').textContent=RISE==null?'Päikest ei ole sel päeval':`Päikesetõus ${hm(RISE)} · loojang ${hm(SET)} · päikese kõrgus ${Math.round(s.alt/RAD)}° · suund ${Math.round(s.az/RAD)}° ${windOf(s.az)}`;
 }
 function setupTime(){
- calcRS();let a0=null,a1=null;for(let q=0;q<1440;q++){if(sunPos(dateAt(q),LAT,LON).alt>0.2*RAD){if(a0==null)a0=q;a1=q}}const lo=a0==null?0:Math.max(0,a0-45),hi=a0==null?1439:Math.min(1439,a1+45),tr=$('#tr');tr.min=lo;tr.max=hi;
+ calcRS();let a0=null,a1=null;for(let q=0;q<1440;q++){if(sunPos(dateAt(q),LAT,LON).alt>0.2*RAD){if(a0==null)a0=q;a1=q}}window.UP0=a0;window.UP1=a1;const lo=a0==null?0:Math.max(0,a0-45),hi=a0==null?1439:Math.min(1439,a1+45),tr=$('#tr');tr.min=lo;tr.max=hi;
  let m=MIN;
  if(!started){const n=new Date(),nm=n.getHours()*60+n.getMinutes();
   if(DATE==isoToday()&&RISE!=null&&nm>=RISE&&nm<=SET)m=nm;else if(CALL!=null&&RISE!=null&&CALL>=RISE&&CALL<=SET)m=CALL;else m=RISE!=null?Math.round((RISE+SET)/2/5)*5:720}
@@ -512,7 +512,7 @@ function bind(){
  if(CALL!=null){$('#bcall').style.display='';$('#bcall').textContent='Call '+hm2(CALL);$('#bcall').onclick=()=>{play(false);setSun(clamp(CALL,+$('#tr').min,+$('#tr').max))}}
  if(WRAP!=null){$('#bwrap').style.display='';$('#bwrap').textContent='Wrap '+hm2(WRAP);$('#bwrap').onclick=()=>{play(false);setSun(clamp(WRAP,+$('#tr').min,+$('#tr').max))}}
  if(CALL!=null&&WRAP!=null)$('#pcw').style.display='';
- $('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(SET,+$('#tr').min,+$('#tr').max))}};
+ $('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(window.UP0!=null?window.UP0:RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(window.UP1!=null?window.UP1:SET,+$('#tr').min,+$('#tr').max))}};
  $('#date').value=DATE;$('#date').onchange=e=>{if(!e.target.value)return;play(false);DATE=e.target.value;started=false;setupTime();CMP=null;$('#cmp').innerHTML='';$('#cmpact').style.display='none'};
  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
  $('#gm').onchange=e=>setGround(e.target.value);
