@@ -331,12 +331,34 @@ function treeGrp(t){
  else{const ch=t.h*0.65;cr=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),mats);cr.scale.set(t.d/2,ch/2,t.d/2);cr.position.y=t.h-ch/2}
  [tr,cr].forEach(m=>{m.castShadow=true;m.receiveShadow=true;m.userData={kind:'tree',id:t.id}});
  g.add(tr,cr);g.position.set(t.x,0,-t.n);g.userData={id:t.id};return g}
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function woodTrees(ws){
+ const SP=6.5,pos=[];
+ ws.forEach((w,wi)=>{const P=w.pts;let x0=1e9,x1=-1e9,n0=1e9,n1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);n0=Math.min(n0,p[1]);n1=Math.max(n1,p[1])});
+  const R=rng(wi*7919+13);
+  for(let x=x0;x<=x1;x+=SP)for(let n=n0;n<=n1;n+=SP){const q=[x+(R()-.5)*SP*.9,n+(R()-.5)*SP*.9];if(pip(q,P))pos.push(q)}});
+ if(!pos.length)return [];
+ const MAXT=4500,st=Math.max(1,Math.ceil(pos.length/MAXT)),R2=rng(99),T=[];
+ for(let i=0;i<pos.length;i+=st){const H=9+R2()*10,con=R2()<0.62;T.push({p:pos[i],H,con,d:H*(0.4+R2()*0.2)*(con?1:1.25),c:R2()})}
+ const CC=[0x24472b,0x2c5632,0x1f3f27],CD=[0x3b6e3a,0x4a7d3f,0x35623a],mat=new THREE.MeshLambertMaterial({color:0xffffff}),out=[],dm=new THREE.Object3D();
+ [true,false].forEach(con=>{
+  const L=T.filter(t=>t.con===con);if(!L.length)return;
+  const im=new THREE.InstancedMesh(con?new THREE.ConeGeometry(1,1,7):new THREE.SphereGeometry(1,7,6),mat,L.length),col=new THREE.Color();
+  L.forEach((t,i)=>{
+   dm.rotation.set(0,t.c*6.28,0);
+   if(con){dm.scale.set(t.d/2,t.H*0.85,t.d/2);dm.position.set(t.p[0],t.H*0.15+t.H*0.425,-t.p[1])}
+   else{dm.scale.set(t.d/2,t.H*0.42,t.d/2);dm.position.set(t.p[0],t.H*0.58,-t.p[1])}
+   dm.updateMatrix();im.setMatrixAt(i,dm.matrix);
+   const pal=con?CC:CD;col.setHex(pal[Math.floor(t.c*pal.length)%pal.length]);col.offsetHSL(0,0,(t.c-0.5)*0.05);im.setColorAt(i,col)});
+  im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;
+  im.castShadow=true;im.receiveShadow=true;im.frustumCulled=false;out.push(im)});
+ return out}
 function woodMesh(w){const sh=new THREE.Shape(w.pts.map(p=>new THREE.Vector2(p[0],p[1]))),m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:11,bevelEnabled:false}),matWood);m.rotation.x=-Math.PI/2;m.position.y=3;m.castShadow=true;m.receiveShadow=true;return m}
 function mkTR(){TR=[];D.trees.forEach(t=>{if(HIDE.has(t.id))return;TR.push(Object.assign({},t,TO[t.id]||{}))});MY.forEach(m=>{const p=loc(m.la,m.lo);if(Math.hypot(p[0],p[1])>450)return;TR.push({id:m.id,x:p[0],n:p[1],h:m.h,d:m.d,t:m.t||'l',src:'user'})})}
 function rebuild(){
  clearG(gB);clearG(gT);clearG(gW);PICK=[];bM.clear();tM.clear();mkTR();
  D.bld.forEach(b=>{const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==b.id)m.material=matBs;gB.add(m);bM.set(b.id,m);PICK.push(m)});
- D.woods.forEach(w=>gW.add(woodMesh(w)));
+ woodTrees(D.woods).forEach(m=>gW.add(m));
  TR.forEach(t=>{const g=treeGrp(t);gT.add(g);tM.set(t.id,g);g.children.forEach(c=>PICK.push(c))});
  gT.visible=gW.visible=$('#lt').checked;
  const s=D.st||{},hid=HIDE.size;
@@ -363,7 +385,7 @@ function setSun(min,quiet){
  if(!dl)return;
  dl.position.copy(sdir(s,1)).multiplyScalar(1500);dl.target.position.set(0,0,0);dl.target.updateMatrixWorld();
  dl.intensity=up?1:0;hemi.intensity=up?0.62:0.4;
- if(shadowMat)shadowMat.opacity=up?0.55*clamp(s.alt/(3*RAD),0.25,1):0;
+ if(shadowMat)shadowMat.opacity=up?0.55:0;
  sunBall.position.copy(sdir(s,RS));sunBall.visible=up;
  need();if(quiet)return;
  $('#tbig').textContent=hm2(min);$('#tr').value=min;
