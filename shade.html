@@ -104,7 +104,7 @@ label.t{display:flex;align-items:center;gap:6px}
    <select id="dt"><option value="l">Lehtpuu</option><option value="n">Okaspuu</option></select>
   </div>
   <div id="selbox" style="margin-top:10px"></div>
-  <div class="row" style="margin-top:8px"><button class="btn" id="unhide">Taasta peidetud puud</button><button class="btn" id="reload">Värskenda OSM andmed</button></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="unhide">Taasta peidetud puud</button><button class="btn" id="reload">Värskenda andmed</button></div>
   <div class="sub" id="dstat" style="margin-top:6px"></div>
  </section>
 
@@ -122,7 +122,7 @@ label.t{display:flex;align-items:center;gap:6px}
   <div id="gal"></div>
   <div class="sub" id="galh">Salvestatud pildid on selles seadmes. Recce lehele lisamisel loeb leht need siit.</div>
  </section>
- <div class="sub" style="margin:0 12px 12px">Hooned ja puud: © OpenStreetMap. Kõrgused on OSM-ist, puuduvatel hoonetel on oletatud kõrgus ja maapind on tasane. Satelliit: Esri. Tulemus on abivahend, mitte mõõtmine. Kontrolli kohapeal.</div>
+ <div class="sub" style="margin:0 12px 12px">Eestis: hooned ja puud Maa- ja Ruumiameti ETAK andmebaasist (hoonete kõrgused andmebaasist, metsade ja puude kõrgus on tüüpväärtus). Mujal © OpenStreetMap. Puuduva kõrgusega hoonetel on oletatud kõrgus ja maapind on tasane. Satelliit: Esri. Tulemus on abivahend, mitte mõõtmine. Kontrolli kohapeal.</div>
 </main>
 
 <div id="ov"><div class="row"><button class="btn" id="ovx">✕ Sulge</button><button class="btn" id="ovs">Jaga / lae alla</button><button class="btn" id="ovd">Kustuta</button></div><img id="ovi" alt=""></div>
@@ -270,12 +270,50 @@ async function fetchOvp(force){
  if(force){const c=await idbGet(key);if(c){try{return {j:JSON.parse(c),cached:true,stale:true}}catch(e){}}}
  throw err||new Error('võrguviga');
 }
+/* ---------- Maa- ja Ruumiamet ETAK (Eesti): hooned kõrgustega, puud, salud, metsad ---------- */
+const inEE=()=>LAT>57.4&&LAT<59.8&&LON>21.7&&LON<28.3;
+const ETL={b:'e_401_hoone_ka',a:'e_305_puittaimestik_a',p:'e_305_puittaimestik_p',l:'e_305_puittaimestik_j'};
+async function fetchEtak(force){
+ const key='etak:'+LAT.toFixed(4)+','+LON.toFixed(4);
+ if(!force){const c=await idbGet(key);if(c){try{return {j:JSON.parse(c),cached:true}}catch(e){}}}
+ const dla=0.0027,dlo=dla/Math.cos(LAT*Math.PI/180),bb=`${LAT-dla},${LON-dlo},${LAT+dla},${LON+dlo},urn:ogc:def:crs:EPSG::4326`;
+ try{
+  const j={};
+  await Promise.all(Object.keys(ETL).map(async k=>{const u='https://gsavalik.envir.ee/geoserver/etak/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=etak:'+ETL[k]+'&outputFormat=application/json&srsName=EPSG:4326&count=3000&bbox='+bb;const r=await ft(u,15000);if(!r.ok)throw new Error('ETAK HTTP '+r.status);const x=await r.json();if(!x||!Array.isArray(x.features))throw new Error('ETAK vastus');j[k]=x.features}));
+  idbPut(key,JSON.stringify(j)).catch(()=>{});
+  return {j,cached:false};
+ }catch(e){
+  if(force){const c=await idbGet(key);if(c){try{return {j:JSON.parse(c),cached:true,stale:true}}catch(e2){}}}
+  throw e;
+ }
+}
+function parseEtak(j){
+ const out={bld:[],trees:[],woods:[],st:{},src:'ETAK'};
+ const ring=c=>c.slice(0,-1).map(p=>loc(p[1],p[0]));
+ const polys=g=>!g?[]:g.type=='Polygon'?[g.coordinates]:g.type=='MultiPolygon'?g.coordinates:[];
+ (j.b||[]).forEach(f=>{try{const p=f.properties||{};let h=num(p.korgus_m),g=false;if(!(h>0)){h=9;g=true}
+  polys(f.geometry).forEach((pl,i)=>{const r=ring(pl[0]);if(r.length<3)return;out.bld.push({id:'e'+p.etak_id+'_'+i,pts:r,holes:pl.slice(1).map(ring).filter(x=>x.length>2),h,base:0,guessed:g,exp:!g})})}catch(e){}});
+ (j.a||[]).forEach(f=>{try{const p=f.properties||{};polys(f.geometry).forEach((pl,i)=>{const r=ring(pl[0]);if(r.length>2)out.woods.push({id:'f'+p.etak_id+'_'+i,pts:r})})}catch(e){}});
+ const TT={50:[12,7],60:[10,8],70:[12,11]};
+ (j.p||[]).forEach(f=>{try{const p=f.properties||{},g=f.geometry;if(!g||g.type!='Point')return;const t=TT[p.tyyp]||[10,7],q=loc(g.coordinates[1],g.coordinates[0]);
+  if(out.woods.some(w=>pip(q,w.pts)))return;
+  out.trees.push({id:'e'+p.etak_id,x:q[0],n:q[1],h:t[0],d:t[1],t:'l',src:'etak'})}catch(e){}});
+ (j.l||[]).forEach(f=>{try{const p=f.properties||{},g=f.geometry;if(!g||g.type!='LineString')return;const L=g.coordinates.map(c=>loc(c[1],c[0]));let acc=0,k=0;
+  for(let i=1;i<L.length;i++){const a=L[i-1],b=L[i],dl=Math.hypot(b[0]-a[0],b[1]-a[1]);if(dl<0.1)continue;let s=(8-acc%8)%8;if(i==1)s=0;for(;s<=dl;s+=8){const fr=s/dl;out.trees.push({id:'e'+p.etak_id+'_'+(k++),x:a[0]+(b[0]-a[0])*fr,n:a[1]+(b[1]-a[1])*fr,h:10,d:6,t:'l',src:'etak'})}acc+=dl}}catch(e){}});
+ if(out.trees.length>700)out.trees.length=700;
+ out.st={b:out.bld.length,g:out.bld.filter(b=>b.guessed).length,t:out.trees.length,w:out.woods.length};
+ return out;
+}
 async function loadData(force){
- busy('Laen hooneid ja puid (OSM)…');
- try{const r=await fetchOvp(force);D=parseOvp(r.j);$('#dstat').textContent='';if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}
- catch(e){D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(e&&e.message||'võrk')+'). Vajuta "Värskenda OSM andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
+ busy('Laen hooneid ja puid…');
+ let ok=false,err=null;
+ if(inEE()){try{const r=await fetchEtak(force);D=parseEtak(r.j);ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=e}}
+ if(!ok){try{const r=await fetchOvp(force);D=parseOvp(r.j);D.src='OSM';ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=err||e}}
+ if(ok)$('#dstat').textContent='';
+ else{D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(err&&err.message||'võrk')+'). Vajuta "Värskenda andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
  busy('');rebuild();
 }
+function statTxt(){const s=D.st||{};return `${D.src=='ETAK'?'Maa-amet':(D.src||'OSM')}: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`}
 
 /* ---------- Mudelid ---------- */
 let PICK=[],SEL=null;const bM=new Map(),tM=new Map();
@@ -302,7 +340,7 @@ function rebuild(){
  TR.forEach(t=>{const g=treeGrp(t);gT.add(g);tM.set(t.id,g);g.children.forEach(c=>PICK.push(c))});
  gT.visible=gW.visible=$('#lt').checked;
  const s=D.st||{},hid=HIDE.size;
- if(!$('#dstat').textContent||/^Hooneid|^OSM/.test($('#dstat').textContent))$('#dstat').textContent=`OSM: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`;
+ if(!$('#dstat').textContent||/^(Hooneid|OSM|Maa-amet)/.test($('#dstat').textContent))$('#dstat').textContent=statTxt();
  $('#unhide').textContent='Taasta peidetud puud ('+hid+')';$('#unhide').disabled=!hid;
  need();
 }
@@ -369,17 +407,17 @@ function tap(cx,cy){
  if(SEL&&SEL.kind=='tree')refreshTree(SEL.id);if(SEL&&SEL.kind=='bld')refreshBld(SEL.id);
  selUI();need();
 }
-function rebuildStat(){const s=D.st||{};$('#dstat').textContent=`OSM: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`;$('#unhide').textContent='Taasta peidetud puud ('+HIDE.size+')';$('#unhide').disabled=!HIDE.size}
+function rebuildStat(){$('#dstat').textContent=statTxt();$('#unhide').textContent='Taasta peidetud puud ('+HIDE.size+')';$('#unhide').disabled=!HIDE.size}
 function selUI(){
  const b=$('#selbox');
  if(!SEL){b.innerHTML='<div class="sub">Vajuta kaardil puule või hoonele, et muuta selle kõrgust.</div>';return}
  if(SEL.kind=='tree'){const t=TR.find(z=>z.id==SEL.id);if(!t){SEL=null;return selUI()}
-  b.innerHTML=`<div class="row"><b>${t.src=='user'?'Sinu puu':'Puu (OSM)'}</b><span class="sub" id="sv">${t.h} m, võra ${t.d} m</span></div>
+  b.innerHTML=`<div class="row"><b>${t.src=='user'?'Sinu puu':'Puu'}</b><span class="sub" id="sv">${t.h} m, võra ${t.d} m</span></div>
   <label class="t">Kõrgus <input type="range" min="2" max="35" step="0.5" value="${t.h}" oninput="selSet('h',this.value)"></label>
   <label class="t">Võra <input type="range" min="1" max="22" step="0.5" value="${t.d}" oninput="selSet('d',this.value)"></label>
   <div class="row"><select onchange="selSet('t',this.value)"><option value="l" ${t.t!='n'?'selected':''}>Lehtpuu</option><option value="n" ${t.t=='n'?'selected':''}>Okaspuu</option></select><button class="btn" onclick="selDel()">${t.src=='user'?'Kustuta puu':'Peida see puu'}</button></div>`}
  else{const x=D.bld.find(z=>z.id==SEL.id);if(!x){SEL=null;return selUI()}const h=BH[x.id]!=null?BH[x.id]:x.h;
-  b.innerHTML=`<div class="row"><b>Hoone (OSM ${esc(x.id)})</b><span class="sub" id="sv">${h} m${x.guessed&&BH[x.id]==null?' (oletatud)':''}</span></div>
+  b.innerHTML=`<div class="row"><b>Hoone</b><span class="sub" id="sv">${h} m${x.guessed&&BH[x.id]==null?' (oletatud)':''}</span></div>
   <label class="t">Kõrgus <input type="range" min="3" max="120" step="0.5" value="${h}" oninput="selSet('bh',this.value)"></label>
   <div class="row"><button class="btn" onclick="selDel()">Lähtesta kõrgus</button></div>`}
 }
@@ -402,7 +440,7 @@ function drawCells(times,cw,ch,cols){
  x.fillStyle='#0b1220';x.fillRect(0,0,c.width,c.height);
  const FF='-apple-system,Segoe UI,Roboto,sans-serif';
  x.textBaseline='middle';x.fillStyle='#fbbf24';x.font='bold 28px '+FF;x.fillText('☀ '+(NAME||'Päikese- ja varjukaart'),16,24);
- x.fillStyle='#cbd5e1';x.font='19px '+FF;const [y,mo,d]=DATE.split('-');x.fillText(`${+d}.${+mo}.${y}`+(RISE==null?'':` · päikesetõus ${hm(RISE)} · loojang ${hm(SET)}`)+' · puud/hooned: OSM',16,54);
+ x.fillStyle='#cbd5e1';x.font='19px '+FF;const [y,mo,d]=DATE.split('-');x.fillText(`${+d}.${+mo}.${y}`+(RISE==null?'':` · päikesetõus ${hm(RISE)} · loojang ${hm(SET)}`)+' · hooned/puud: '+(D.src=='ETAK'?'Maa-amet ETAK':'OSM'),16,54);
  const keep={min:MIN,pr:renderer.getPixelRatio()};
  renderer.setPixelRatio(1);renderer.setSize(cw,ch,false);camera.aspect=cw/ch;camera.updateProjectionMatrix();
  times.forEach((m,i)=>{setSun(m,true);renderer.render(scene,camera);const px=(i%cols)*cw,py=HH+Math.floor(i/cols)*ch;x.drawImage(renderer.domElement,px,py,cw,ch);
