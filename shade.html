@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Päikese- ja varjukaart</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#0b1220;--card:#1e293b;--card2:#334155;--tx:#e2e8f0;--sub:#94a3b8;--ac:#f59e0b;--ac2:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+header{display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid #1e293b}
+header b{color:var(--ac2);font-size:17px}
+.sub{color:var(--sub);font-size:13px}
+.btn{background:var(--card2);color:var(--tx);border:0;border-radius:10px;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer}
+.btn.p{background:var(--ac);color:#111}
+.btn.on{background:var(--ac2);color:#111}
+.btn:disabled{opacity:.5}
+.card{background:var(--card);border-radius:14px;padding:12px;margin:10px 12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:0}
+input,select{background:#0f172a;color:var(--tx);border:1px solid #475569;border-radius:10px;padding:8px 10px;font:inherit;max-width:100%}
+input[type=range]{width:100%;padding:0;accent-color:var(--ac)}
+h3{margin:0 0 8px;font-size:15px;color:var(--ac2)}
+#stage{position:relative;height:62vh;min-height:340px;max-height:720px;margin:0;background:#0b1220;touch-action:none}
+#cv{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#tinfo{position:absolute;left:10px;top:10px;background:rgba(15,23,42,.82);border-radius:10px;padding:6px 10px;font-weight:700;font-size:16px;pointer-events:none}
+#tinfo small{display:block;font-weight:400;color:var(--sub);font-size:12px}
+#compass{position:absolute;right:10px;top:10px;width:58px;height:58px;border-radius:50%;background:rgba(15,23,42,.82);pointer-events:none}
+#compass i{position:absolute;left:0;right:0;top:2px;text-align:center;font:700 12px sans-serif;color:#fff;font-style:normal}
+#compass b{position:absolute;left:50%;top:50%;width:0;height:0}
+#compass b::after{content:"";position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:#fbbf24;transform:translateY(-20px)}
+#compass u{position:absolute;inset:0;transform-origin:50% 50%;text-decoration:none}
+#hint{position:absolute;left:10px;bottom:8px;right:10px;color:#cbd5e1;font-size:12px;text-shadow:0 1px 2px #000;pointer-events:none}
+#busy{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(15,23,42,.85);padding:8px 14px;border-radius:12px;font-weight:600;display:none;text-align:center;max-width:80%}
+#night{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);background:rgba(15,23,42,.85);padding:6px 12px;border-radius:10px;display:none;font-weight:600}
+#tbig{font-size:28px;font-weight:800;color:var(--ac2);min-width:84px;text-align:right}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.grid4 input{width:100%}
+#cmp canvas,#gal img{width:100%;border-radius:10px;display:block}
+#gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#gal img{aspect-ratio:4/3;object-fit:cover}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:20;display:none;flex-direction:column;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 10px}
+#ov img{flex:1;min-height:0;object-fit:contain;width:100%}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#0f172a;border:1px solid #475569;padding:10px 14px;border-radius:12px;z-index:30;display:none;max-width:90%;text-align:center}
+label.t{display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<header><button class="btn" id="back">←</button><div class="grow" style="flex:1;min-width:0"><b>Päikese- ja varjukaart</b><div class="sub" id="place" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div></header>
+
+<div id="locate" class="card" style="display:none">
+ <h3>Asukoht</h3>
+ <div class="sub" style="margin-bottom:8px">Kirjuta aadress, kleebi Google Mapsi link või koordinaadid (59.43, 24.75).</div>
+ <div class="row"><input id="lq" class="grow" placeholder="Aadress, link või koordinaadid"><button class="btn p" id="lgo">Otsi</button></div>
+ <div class="row" style="margin-top:8px"><button class="btn" id="lgps">📍 Minu asukoht</button><span class="sub" id="lmsg"></span></div>
+</div>
+
+<main id="app" style="display:none">
+ <div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="tinfo"></div>
+  <div id="compass"><u id="cu"><i>N</i><b id="cs"></b></u></div>
+  <div id="busy"></div>
+  <div id="night">Päike on silmapiiri all</div>
+  <div id="hint">1 sõrm: pööra · 2 sõrme: suumi ja liiguta</div>
+ </div>
+
+ <section class="card">
+  <div class="row"><input type="date" id="date" class="grow"><div id="tbig">12:00</div></div>
+  <input type="range" id="tr" step="5" style="margin:10px 0 4px">
+  <div class="row">
+   <button class="btn" id="tm">−15</button><button class="btn" id="tp">+15</button>
+   <button class="btn p" id="play">▶ Esita</button>
+   <button class="btn" id="bcall" style="display:none">Call</button><button class="btn" id="bwrap" style="display:none">Wrap</button>
+   <button class="btn" id="brise">Tõus</button><button class="btn" id="bset">Loojang</button>
+  </div>
+  <div class="sub" id="sinfo" style="margin-top:6px"></div>
+ </section>
+
+ <section class="card">
+  <h3>Vaade</h3>
+  <div class="row">
+   <button class="btn" data-v="top">Pealt</button><button class="btn" data-v="S">Lõunast</button><button class="btn" data-v="E">Idast</button><button class="btn" data-v="N">Põhjast</button><button class="btn" data-v="W">Läänest</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+   <select id="gm" class="grow"><option value="sat">Maapind: satelliit</option><option value="osm">Maapind: tänavakaart</option><option value="none">Maapind: neutraalne</option></select>
+   <label class="t"><input type="checkbox" id="lt" checked>Puud</label>
+   <label class="t"><input type="checkbox" id="lp" checked>Päikese tee</label>
+  </div>
+  <div class="sub" style="margin-top:6px">Satelliidipildil on oma varjud. Simuleeritud varjud on tumedad ja läbipaistvad.</div>
+ </section>
+
+ <section class="card">
+  <h3>Puud ja hooned</h3>
+  <div class="row"><button class="btn" id="addt">＋ Lisa puu</button><span class="sub" id="addh">Vajuta kaardil kohta, kuhu puu läheb.</span></div>
+  <div class="row" style="margin-top:8px">
+   <label class="t grow">Kõrgus <input type="range" id="dh" min="3" max="30" value="12"><b id="dhv">12 m</b></label>
+  </div>
+  <div class="row">
+   <label class="t grow">Võra <input type="range" id="dd" min="2" max="18" value="7"><b id="ddv">7 m</b></label>
+   <select id="dt"><option value="l">Lehtpuu</option><option value="n">Okaspuu</option></select>
+  </div>
+  <div id="selbox" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="unhide">Taasta peidetud puud</button><button class="btn" id="reload">Värskenda OSM andmed</button></div>
+  <div class="sub" id="dstat" style="margin-top:6px"></div>
+ </section>
+
+ <section class="card">
+  <h3>Varjud mitmel kellaajal</h3>
+  <div class="grid4"><input type="time" id="c0"><input type="time" id="c1"><input type="time" id="c2"><input type="time" id="c3"></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="pday">Päev</button><button class="btn" id="pcw" style="display:none">Call → Wrap</button><button class="btn p" id="cmpgo">Tee võrdlus</button></div>
+  <div id="cmp" style="margin-top:10px"></div>
+  <div class="row" id="cmpact" style="margin-top:8px;display:none"><button class="btn p" id="csave">Salvesta recce kogumikku</button><button class="btn" id="cshare">Jaga / lae alla</button></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="ssave">Salvesta praegune vaade</button></div>
+ </section>
+
+ <section class="card">
+  <h3>Salvestatud varjukaardid <span class="sub" id="galn"></span></h3>
+  <div id="gal"></div>
+  <div class="sub" id="galh">Salvestatud pildid on selles seadmes. Recce lehele lisamisel loeb leht need siit.</div>
+ </section>
+ <div class="sub" style="margin:0 12px 12px">Hooned ja puud: © OpenStreetMap. Kõrgused on OSM-ist, puuduvatel hoonetel on oletatud kõrgus ja maapind on tasane. Satelliit: Esri. Tulemus on abivahend, mitte mõõtmine. Kontrolli kohapeal.</div>
+</main>
+
+<div id="ov"><div class="row"><button class="btn" id="ovx">✕ Sulge</button><button class="btn" id="ovs">Jaga / lae alla</button><button class="btn" id="ovd">Kustuta</button></div><img id="ovi" alt=""></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RAD=Math.PI/180,pad=n=>String(n).padStart(2,'0'),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const isoToday=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const tmin=s=>{const m=/^(\d{1,2}):(\d\d)/.exec(s||'');return m?(+m[1]*60+ +m[2]):null};
+const hm=m=>{m=((Math.round(m)%1440)+1440)%1440;return Math.floor(m/60)+':'+pad(m%60)};
+const hm2=m=>{m=((Math.round(m)%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)};
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const Q=new URLSearchParams(location.search);
+let LAT=parseFloat(Q.get('lat')),LON=parseFloat(Q.get('lon'));
+let DATE=/^\d{4}-\d\d-\d\d$/.test(Q.get('date')||'')?Q.get('date'):isoToday();
+let NAME=Q.get('n')||Q.get('q')||'';
+const CALL=tmin(Q.get('call')),WRAP=tmin(Q.get('wrap'));
+let MIN=720,RISE=null,SET=null,SUN={az:0,alt:0},started=false;
+const toast=(m,ms)=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',ms||2600)};
+const ft=(u,ms,o)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||10000);return fetch(u,Object.assign({signal:c.signal},o||{})).finally(()=>clearTimeout(t))};
+
+/* ---------- Päike ---------- */
+function sunPos(date,lat,lon){
+ const d=date.valueOf()/864e5-0.5+2440588-2451545,
+ M=RAD*(357.5291+0.98560028*d),
+ C=RAD*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M)),
+ L=M+C+RAD*102.9372+Math.PI,
+ dec=Math.asin(Math.sin(RAD*23.4397)*Math.sin(L)),
+ ra=Math.atan2(Math.sin(L)*Math.cos(RAD*23.4397),Math.cos(L)),
+ th=RAD*(280.16+360.9856235*d)+RAD*lon,H=th-ra,phi=RAD*lat;
+ const az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(phi)-Math.tan(dec)*Math.cos(phi))+Math.PI;
+ const alt=Math.asin(Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(H));
+ return {az:(az%(2*Math.PI)+2*Math.PI)%(2*Math.PI),alt};
+}
+const dateAt=m=>{const [y,mo,d]=DATE.split('-').map(Number);return new Date(y,mo-1,d,0,m)};
+function calcRS(){let r=null,s=null;for(let m=0;m<1440;m++){if(sunPos(dateAt(m),LAT,LON).alt>-0.833*RAD){if(r===null)r=m;s=m}}RISE=r;SET=s}
+const WIND=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const windOf=az=>WIND[Math.round(az/RAD/22.5)%16];
+
+/* ---------- Koordinaadid ---------- */
+let Z=18,MPP=1,CX=0,CY=0;
+function wpx(lat,lon,z){const n=2**(z||Z)*256,s=Math.sin(lat*RAD);return [(lon+180)/360*n,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]}
+function initGeo(){MPP=156543.03392*Math.cos(LAT*RAD)/2**Z;[CX,CY]=wpx(LAT,LON)}
+function loc(lat,lon){const p=wpx(lat,lon);return [(p[0]-CX)*MPP,-(p[1]-CY)*MPP]}
+function unloc(x,n){const N=2**Z*256,px=CX+x/MPP,py=CY-n/MPP;return [Math.atan(Math.sinh(Math.PI*(1-2*py/N)))/RAD,px/N*360-180]}
+
+/* ---------- Stseen ---------- */
+const cv=$('#cv'),stage=$('#stage');
+let renderer,scene,camera,dl,hemi,gGround,gB,gT,gW,gP,sunBall,shadowMat,gridH;
+const cam={az:0,pol:1.0,dist:330,tgt:null};
+let dirty=true,GR=170;
+function initGL(){
+ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1220);
+ camera=new THREE.PerspectiveCamera(42,1,2,5000);cam.tgt=new THREE.Vector3();
+ hemi=new THREE.HemisphereLight(0xdfe9ff,0x6b6b5a,0.62);scene.add(hemi);
+ dl=new THREE.DirectionalLight(0xfff1d6,1);dl.castShadow=true;
+ const big=renderer.capabilities.maxTextureSize>=8192?4096:2048;dl.shadow.mapSize.set(big,big);
+ dl.shadow.bias=-0.0004;dl.shadow.normalBias=0.25;scene.add(dl,dl.target);
+ gGround=new THREE.Group();gB=new THREE.Group();gT=new THREE.Group();gW=new THREE.Group();gP=new THREE.Group();
+ scene.add(gGround,gB,gT,gW,gP);
+ sunBall=new THREE.Mesh(new THREE.SphereGeometry(7,16,12),new THREE.MeshBasicMaterial({color:0xffd54a}));scene.add(sunBall);
+ resize();new ResizeObserver(resize).observe(stage);addEventListener('resize',resize);
+ (function loop(){requestAnimationFrame(loop);if(dirty){dirty=false;renderer.render(scene,camera)}})();
+}
+const need=()=>{dirty=true};
+function resize(){if(!renderer)return;const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();need()}
+function applyCam(){const s=Math.sin(cam.pol),c=Math.cos(cam.pol);camera.position.set(cam.tgt.x+cam.dist*s*Math.sin(cam.az),cam.tgt.y+cam.dist*c,cam.tgt.z+cam.dist*s*Math.cos(cam.az));camera.lookAt(cam.tgt);$('#cu').style.transform='rotate('+(cam.az/RAD)+'deg)';need()}
+function setView(v){const m={top:[0,0.03,420],S:[0,1.0,320],E:[Math.PI/2,1.0,320],N:[Math.PI,1.0,320],W:[-Math.PI/2,1.0,320]}[v];cam.az=m[0];cam.pol=m[1];cam.dist=m[2];cam.tgt.set(0,0,0);applyCam()}
+
+const matB=new THREE.MeshLambertMaterial({color:0xd8d0c0}),matBs=new THREE.MeshLambertMaterial({color:0xfbbf24,emissive:0x664400}),
+ matWood=new THREE.MeshLambertMaterial({color:0x2e5d34}),matTr=new THREE.MeshLambertMaterial({color:0x5b4636}),
+ matCr=new THREE.MeshLambertMaterial({color:0x2f6b34}),matCu=new THREE.MeshLambertMaterial({color:0x43a047}),matCs=new THREE.MeshLambertMaterial({color:0xfbbf24,emissive:0x664400});
+
+function mkLabel(txt,size,col){const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');x.font='bold 40px sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineWidth=6;x.strokeStyle='rgba(0,0,0,.75)';x.strokeText(txt,64,34);x.fillStyle=col||'#fff';x.fillText(txt,64,34);const t=new THREE.CanvasTexture(c),s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true}));s.scale.set(size*2,size,1);s.renderOrder=10;return s}
+function clearG(g){for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];g.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&n.material.map&&!n.userData.keepMap)n.material.map.dispose()})}}
+
+/* ---------- Maapind ---------- */
+const GC={};let gTok=0;
+function tileUrl(kind,z,x,y){return kind=='sat'?`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}?s=1`:`https://tile.openstreetmap.org/${z}/${x}/${y}.png?s=1`}
+function setGround(kind){
+ const tok=++gTok;clearG(gGround);shadowMat=null;
+ const x0=Math.floor((CX-GR/MPP)/256),x1=Math.floor((CX+GR/MPP)/256),y0=Math.floor((CY-GR/MPP)/256),y1=Math.floor((CY+GR/MPP)/256),nx=x1-x0+1,ny=y1-y0+1,W=nx*256*MPP,H=ny*256*MPP,
+  cxm=((x0*256+nx*128)-CX)*MPP,czm=((y0*256+ny*128)-CY)*MPP;
+ GR=Math.max(GR,0);
+ const plane=(mat)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(W,H),mat);m.rotation.x=-Math.PI/2;m.position.set(cxm,0,czm);return m};
+ let gm;
+ if(kind=='none'){gm=plane(new THREE.MeshBasicMaterial({color:0x56607a}));gGround.add(gm);const gr=new THREE.GridHelper(Math.max(W,H),Math.round(Math.max(W,H)/25),0x7b86a3,0x6a7592);gr.position.set(cxm,0.05,czm);gGround.add(gr)}
+ else{
+  const c=document.createElement('canvas');c.width=nx*256;c.height=ny*256;const x=c.getContext('2d');x.fillStyle='#56607a';x.fillRect(0,0,c.width,c.height);
+  const tex=new THREE.CanvasTexture(c);tex.anisotropy=4;gm=plane(new THREE.MeshBasicMaterial({map:tex}));gGround.add(gm);
+  let left=nx*ny,fail=0;const done=()=>{left--;tex.needsUpdate=true;need();if(left<=0&&tok==gTok){busy('');if(fail>=nx*ny)toast('Kaardipilti ei saadud (võrk?). Varjud töötavad ka ilma.')}};
+  busy('Laen kaardipilti…');
+  for(let i=0;i<nx;i++)for(let j=0;j<ny;j++){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(tok==gTok)x.drawImage(im,i*256,j*256);done()};im.onerror=()=>{fail++;done()};im.src=tileUrl(kind,Z,x0+i,y0+j)}
+ }
+ const sm=new THREE.ShadowMaterial({opacity:0.55,color:0x050a18});shadowMat=sm;
+ const sp=plane(sm);sp.position.y=0.08;sp.receiveShadow=true;gGround.add(sp);
+ const sc=dl.shadow.camera,R=Math.max(W,H)*0.72;sc.left=-R;sc.right=R;sc.top=R;sc.bottom=-R;sc.near=100;sc.far=3200;sc.updateProjectionMatrix();
+ setSun(MIN);need();
+}
+let busyT=0;function busy(t){const b=$('#busy');if(t){b.textContent=t;b.style.display='block'}else b.style.display='none'}
+
+/* ---------- OSM andmed ---------- */
+let D={bld:[],trees:[],woods:[],st:{}},TR=[],MY=LS.get('bbshade_trees',[]),HIDE=new Set(LS.get('bbshade_hide',[])),BH=LS.get('bbshade_bh',{}),TO=LS.get('bbshade_to',{});
+const num=v=>{const m=String(v==null?'':v).replace(',','.').match(/-?\d+(\.\d+)?/);return m?parseFloat(m[0]):null};
+function pip(p,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>p[1])!=(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+const cen=pts=>{let x=0,y=0;pts.forEach(p=>{x+=p[0];y+=p[1]});return [x/pts.length,y/pts.length]};
+function ringOf(g){if(!g||g.length<4)return null;const a=g[0],b=g[g.length-1];if(a.lat!==b.lat||a.lon!==b.lon)return null;return g.slice(0,-1).map(p=>loc(p.lat,p.lon))}
+const LOWB=new Set(['garage','garages','shed','roof','carport','hut','kiosk','service','transformer_tower','greenhouse','cabin','container','toilets']);
+function hOf(t){let h=num(t.height);if(h!=null&&h>0)return [h,false];const lv=num(t['building:levels']);if(lv!=null&&lv>0)return [lv*3+1,false];return [LOWB.has(t.building)?3:9,true]}
+function baseOf(t){let b=num(t.min_height);if(b!=null)return b;const l=num(t['building:min_level']);return l!=null?l*3:0}
+function parseOvp(j){
+ const out={bld:[],trees:[],woods:[],st:{}},parts=[];
+ (j.elements||[]).forEach(e=>{const t=e.tags||{};
+  try{
+  if(e.type=='node'&&t.natural=='tree'&&e.lat!=null){const p=loc(e.lat,e.lon),h=num(t.height)||10,d=num(t.diameter_crown)||clamp(h*0.55,3,12);out.trees.push({id:'n'+e.id,x:p[0],n:p[1],h,d,t:/needle/.test(t.leaf_type||'')?'n':'l',src:'osm'})}
+  else if(e.type=='way'&&e.geometry){
+   if(t.natural=='tree_row'){const L=e.geometry.map(g=>loc(g.lat,g.lon));let acc=0,k=0;for(let i=1;i<L.length;i++){const a=L[i-1],b=L[i],dl=Math.hypot(b[0]-a[0],b[1]-a[1]);if(dl<0.1)continue;let s=(8-acc%8)%8;if(i==1)s=0;for(;s<=dl;s+=8){const f=s/dl;out.trees.push({id:'r'+e.id+'_'+(k++),x:a[0]+(b[0]-a[0])*f,n:a[1]+(b[1]-a[1])*f,h:num(t.height)||10,d:6,t:'l',src:'osm'})}acc+=dl}}
+   else if(t.natural=='wood'||t.landuse=='forest'){const r=ringOf(e.geometry);if(r&&r.length>2)out.woods.push({id:'f'+e.id,pts:r})}
+   else if(t.building||t['building:part']){const r=ringOf(e.geometry);if(!r||r.length<3)return;const [h,g]=hOf(t),b={id:'w'+e.id,pts:r,h,base:baseOf(t),guessed:g,part:!!t['building:part'],exp:!(g)};if(b.part)parts.push(b);out.bld.push(b)}
+  }else if(e.type=='relation'&&t.building&&e.members){
+   const outs=[],ins=[];e.members.forEach(m=>{if(m.type!='way'||!m.geometry)return;const r=ringOf(m.geometry);if(!r)return;(m.role=='inner'?ins:outs).push(r)});
+   const [h,g]=hOf(t);outs.forEach((r,i)=>out.bld.push({id:'r'+e.id+'_'+i,pts:r,holes:outs.length==1?ins:[],h,base:baseOf(t),guessed:g,exp:!g}));
+  }}catch(err){}
+ });
+ out.bld=out.bld.filter(b=>{if(b.part||b.exp)return true;const c=parts.some(p=>pip(cen(p.pts),b.pts));return !c});
+ out.st={b:out.bld.length,g:out.bld.filter(b=>b.guessed).length,t:out.trees.length,w:out.woods.length};
+ return out;
+}
+function idb(){return new Promise((ok,no)=>{try{const q=indexedDB.open('bbimg',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)}catch(e){no(e)}})}
+async function idbPut(k,v){const d=await idb();return new Promise((ok,no)=>{const t=d.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=ok;t.onerror=()=>no(t.error)})}
+async function idbGet(k){try{const d=await idb();return await new Promise(ok=>{const q=d.transaction('i').objectStore('i').get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){return null}}
+async function idbDel(k){try{const d=await idb();d.transaction('i','readwrite').objectStore('i').delete(k)}catch(e){}}
+const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+async function fetchOvp(force){
+ const key='ovp:'+LAT.toFixed(4)+','+LON.toFixed(4);
+ if(!force){const c=await idbGet(key);if(c){try{return {j:JSON.parse(c),cached:true}}catch(e){}}}
+ const R=260,q=`[out:json][timeout:25];(way["building"](around:${R},${LAT},${LON});way["building:part"](around:${R},${LAT},${LON});relation["building"](around:${R},${LAT},${LON});node["natural"="tree"](around:${R},${LAT},${LON});way["natural"="tree_row"](around:${R},${LAT},${LON});way["natural"="wood"](around:${R},${LAT},${LON});way["landuse"="forest"](around:${R},${LAT},${LON}););out tags geom;`;
+ let err=null;
+ for(const u of OVP){try{const r=await ft(u,28000,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});if(!r.ok)throw new Error('HTTP '+r.status);const txt=await r.text(),j=JSON.parse(txt);idbPut(key,txt).catch(()=>{});return {j,cached:false}}catch(e){err=e}}
+ if(force){const c=await idbGet(key);if(c){try{return {j:JSON.parse(c),cached:true,stale:true}}catch(e){}}}
+ throw err||new Error('võrguviga');
+}
+async function loadData(force){
+ busy('Laen hooneid ja puid (OSM)…');
+ try{const r=await fetchOvp(force);D=parseOvp(r.j);$('#dstat').textContent='';if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}
+ catch(e){D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(e&&e.message||'võrk')+'). Vajuta "Värskenda OSM andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
+ busy('');rebuild();
+}
+
+/* ---------- Mudelid ---------- */
+let PICK=[],SEL=null;const bM=new Map(),tM=new Map();
+function bldMesh(b){
+ const eff=BH[b.id]!=null?BH[b.id]:b.h,base=b.base||0,depth=Math.max(1,eff-base);
+ const sh=new THREE.Shape(b.pts.map(p=>new THREE.Vector2(p[0],p[1])));
+ (b.holes||[]).forEach(hp=>sh.holes.push(new THREE.Path(hp.map(p=>new THREE.Vector2(p[0],p[1])))));
+ const m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false}),matB);
+ m.rotation.x=-Math.PI/2;m.position.y=base;m.castShadow=true;m.receiveShadow=true;m.userData={kind:'bld',id:b.id};return m}
+function treeGrp(t){
+ const g=new THREE.Group(),th=t.h*0.4,mats=(SEL&&SEL.kind=='tree'&&SEL.id==t.id)?matCs:(t.src=='user'?matCu:matCr);
+ const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.3,th,6),matTr);tr.position.y=th/2;
+ let cr;
+ if(t.t=='n'){const ch=t.h-th*0.3;cr=new THREE.Mesh(new THREE.ConeGeometry(t.d/2,ch,8),mats);cr.position.y=th*0.3+ch/2}
+ else{const ch=t.h*0.65;cr=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),mats);cr.scale.set(t.d/2,ch/2,t.d/2);cr.position.y=t.h-ch/2}
+ [tr,cr].forEach(m=>{m.castShadow=true;m.receiveShadow=true;m.userData={kind:'tree',id:t.id}});
+ g.add(tr,cr);g.position.set(t.x,0,-t.n);g.userData={id:t.id};return g}
+function woodMesh(w){const sh=new THREE.Shape(w.pts.map(p=>new THREE.Vector2(p[0],p[1]))),m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:11,bevelEnabled:false}),matWood);m.rotation.x=-Math.PI/2;m.position.y=3;m.castShadow=true;m.receiveShadow=true;return m}
+function mkTR(){TR=[];D.trees.forEach(t=>{if(HIDE.has(t.id))return;TR.push(Object.assign({},t,TO[t.id]||{}))});MY.forEach(m=>{const p=loc(m.la,m.lo);if(Math.hypot(p[0],p[1])>450)return;TR.push({id:m.id,x:p[0],n:p[1],h:m.h,d:m.d,t:m.t||'l',src:'user'})})}
+function rebuild(){
+ clearG(gB);clearG(gT);clearG(gW);PICK=[];bM.clear();tM.clear();mkTR();
+ D.bld.forEach(b=>{const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==b.id)m.material=matBs;gB.add(m);bM.set(b.id,m);PICK.push(m)});
+ D.woods.forEach(w=>gW.add(woodMesh(w)));
+ TR.forEach(t=>{const g=treeGrp(t);gT.add(g);tM.set(t.id,g);g.children.forEach(c=>PICK.push(c))});
+ gT.visible=gW.visible=$('#lt').checked;
+ const s=D.st||{},hid=HIDE.size;
+ if(!$('#dstat').textContent||/^Hooneid|^OSM/.test($('#dstat').textContent))$('#dstat').textContent=`OSM: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`;
+ $('#unhide').textContent='Taasta peidetud puud ('+hid+')';$('#unhide').disabled=!hid;
+ need();
+}
+function refreshTree(id){const t=TR.find(z=>z.id==id),old=tM.get(id);if(!t)return;if(old){gT.remove(old);old.traverse(n=>{if(n.geometry)n.geometry.dispose()});PICK=PICK.filter(p=>!(p.userData.kind=='tree'&&p.userData.id==id))}const g=treeGrp(t);gT.add(g);tM.set(id,g);g.children.forEach(c=>PICK.push(c));need()}
+function refreshBld(id){const b=D.bld.find(z=>z.id==id),old=bM.get(id);if(!b)return;if(old){gB.remove(old);old.geometry.dispose();PICK=PICK.filter(p=>p!==old)}const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==id)m.material=matBs;gB.add(m);bM.set(id,m);PICK.push(m);need()}
+
+/* ---------- Päikese tee ja valgus ---------- */
+const RS=185;
+const sdir=(s,r)=>new THREE.Vector3(Math.sin(s.az)*Math.cos(s.alt)*r,Math.sin(s.alt)*r,-Math.cos(s.az)*Math.cos(s.alt)*r);
+function buildSunPath(){
+ clearG(gP);if(RISE==null)return;
+ const pts=[];for(let m=RISE-10;m<=SET+10;m+=10){const s=sunPos(dateAt(m),LAT,LON);if(s.alt<0)continue;pts.push(sdir(s,RS))}
+ if(pts.length>1)gP.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xfbbf24})));
+ for(let h=Math.ceil(RISE/60);h*60<=SET;h++){const s=sunPos(dateAt(h*60),LAT,LON);if(s.alt<0)continue;const p=sdir(s,RS),d=new THREE.Mesh(new THREE.SphereGeometry(2.2,8,6),new THREE.MeshBasicMaterial({color:0xfbbf24}));d.position.copy(p);gP.add(d);const l=mkLabel(String(h%24),11,'#fde68a');l.position.copy(p).add(new THREE.Vector3(0,10,0));gP.add(l)}
+ const n=mkLabel('N',22,'#fff');n.position.set(0,6,-GR*0.93);gP.add(n);
+ gP.visible=$('#lp').checked;
+}
+function setSun(min,quiet){
+ MIN=min;const s=sunPos(dateAt(min),LAT,LON);SUN=s;const up=s.alt>0;
+ if(!dl)return;
+ dl.position.copy(sdir(s,1)).multiplyScalar(1500);dl.target.position.set(0,0,0);dl.target.updateMatrixWorld();
+ dl.intensity=up?1:0;hemi.intensity=up?0.62:0.22;
+ if(shadowMat)shadowMat.opacity=up?0.55*clamp(s.alt/(3*RAD),0.25,1):0;
+ sunBall.position.copy(sdir(s,RS));sunBall.visible=up;
+ need();if(quiet)return;
+ $('#tbig').textContent=hm2(min);$('#tr').value=min;
+ $('#tinfo').innerHTML=hm2(min)+'<small>'+(up?`päike ${Math.round(s.alt/RAD)}° · ${Math.round(s.az/RAD)}° ${windOf(s.az)}`:'päike silmapiiri all')+'</small>';
+ $('#night').style.display=up?'none':'block';
+ $('#cs').style.transform='rotate('+(s.az/RAD)+'deg)';
+ $('#cs').parentNode.style.transform='rotate('+(cam.az/RAD)+'deg)';
+ $('#sinfo').textContent=RISE==null?'Päikest ei ole sel päeval':`Päikesetõus ${hm(RISE)} · loojang ${hm(SET)} · päikese kõrgus ${Math.round(s.alt/RAD)}° · suund ${Math.round(s.az/RAD)}° ${windOf(s.az)}`;
+}
+function setupTime(){
+ calcRS();const lo=RISE==null?0:Math.max(0,RISE-15),hi=RISE==null?1439:Math.min(1439,SET+15),tr=$('#tr');tr.min=lo;tr.max=hi;
+ let m=MIN;
+ if(!started){const n=new Date(),nm=n.getHours()*60+n.getMinutes();
+  if(DATE==isoToday()&&RISE!=null&&nm>=RISE&&nm<=SET)m=nm;else if(CALL!=null&&RISE!=null&&CALL>=RISE&&CALL<=SET)m=CALL;else m=RISE!=null?Math.round((RISE+SET)/2/5)*5:720}
+ m=clamp(m,lo,hi);buildSunPath();setSun(m);
+ const dd=RISE==null?[540,720,900,1080]:[0,1,2,3].map(i=>Math.round((RISE+60+(SET-RISE-120)*i/3)/15)*15);
+ [0,1,2,3].forEach(i=>$('#c'+i).value=hm2(dd[i]));
+}
+
+/* ---------- Juhtimine ---------- */
+const ptrs=new Map();let g0=null,tapT=0,tapXY=null,moved=0,addMode=false;
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),gpl=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+function pan(dx,dy){const k=cam.dist*0.0016,rx=Math.cos(cam.az),rz=-Math.sin(cam.az),fx=-Math.sin(cam.az),fz=-Math.cos(cam.az);cam.tgt.x+=-rx*dx*k+fx*dy*k;cam.tgt.z+=-rz*dx*k+fz*dy*k;cam.tgt.x=clamp(cam.tgt.x,-300,300);cam.tgt.z=clamp(cam.tgt.z,-300,300)}
+function bindCtl(){
+ cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size==1){moved=0;tapT=performance.now();tapXY=[e.clientX,e.clientY]}else{moved=99;const a=[...ptrs.values()];g0={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2}}});
+ cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;
+  if(ptrs.size==1){moved+=Math.abs(dx)+Math.abs(dy);if(e.pointerType=='mouse'&&(e.buttons&2||e.shiftKey))pan(dx,dy);else{cam.az-=dx*0.007;cam.pol=clamp(cam.pol-dy*0.006,0.03,1.45)}p.x=e.clientX;p.y=e.clientY;applyCam()}
+  else if(ptrs.size==2){p.x=e.clientX;p.y=e.clientY;const a=[...ptrs.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2;if(g0){if(g0.d>10&&d>10)cam.dist=clamp(cam.dist*g0.d/d,40,1300);pan(mx-g0.mx,my-g0.my)}g0={d,mx,my};applyCam()}});
+ const up=e=>{if(!ptrs.has(e.pointerId))return;const was=ptrs.size;ptrs.delete(e.pointerId);if(was==1&&moved<9&&performance.now()-tapT<500&&e.type=='pointerup')tap(e.clientX,e.clientY);if(ptrs.size<2)g0=null;if(ptrs.size==1){const a=[...ptrs.values()][0];moved=99}};
+ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+ cv.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*Math.exp(e.deltaY*0.001),40,1300);applyCam()},{passive:false});
+ cv.addEventListener('contextmenu',e=>e.preventDefault());
+}
+function setRay(cx,cy){const r=cv.getBoundingClientRect();ndc.set(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera)}
+function tap(cx,cy){
+ setRay(cx,cy);
+ if(addMode){const p=new THREE.Vector3();if(ray.ray.intersectPlane(gpl,p)){const ll=unloc(p.x,-p.z),t={id:'u'+Date.now().toString(36)+Math.floor(Math.random()*99),la:+ll[0].toFixed(7),lo:+ll[1].toFixed(7),h:+$('#dh').value,d:+$('#dd').value,t:$('#dt').value};MY.push(t);LS.set('bbshade_trees',MY);mkTR();const o=TR.find(z=>z.id==t.id);if(o){const g=treeGrp(o);gT.add(g);tM.set(o.id,g);g.children.forEach(c=>PICK.push(c))}$('#dstat').textContent='';rebuildStat();need()}return}
+ const h=ray.intersectObjects(PICK,false).filter(x=>x.object.visible!==false&&x.object.parent&&x.object.parent.visible!==false);
+ const prev=SEL;SEL=h.length?{kind:h[0].object.userData.kind,id:h[0].object.userData.id}:null;
+ if(prev&&prev.kind=='tree')refreshTree(prev.id);if(prev&&prev.kind=='bld')refreshBld(prev.id);
+ if(SEL&&SEL.kind=='tree')refreshTree(SEL.id);if(SEL&&SEL.kind=='bld')refreshBld(SEL.id);
+ selUI();need();
+}
+function rebuildStat(){const s=D.st||{};$('#dstat').textContent=`OSM: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`;$('#unhide').textContent='Taasta peidetud puud ('+HIDE.size+')';$('#unhide').disabled=!HIDE.size}
+function selUI(){
+ const b=$('#selbox');
+ if(!SEL){b.innerHTML='<div class="sub">Vajuta kaardil puule või hoonele, et muuta selle kõrgust.</div>';return}
+ if(SEL.kind=='tree'){const t=TR.find(z=>z.id==SEL.id);if(!t){SEL=null;return selUI()}
+  b.innerHTML=`<div class="row"><b>${t.src=='user'?'Sinu puu':'Puu (OSM)'}</b><span class="sub" id="sv">${t.h} m, võra ${t.d} m</span></div>
+  <label class="t">Kõrgus <input type="range" min="2" max="35" step="0.5" value="${t.h}" oninput="selSet('h',this.value)"></label>
+  <label class="t">Võra <input type="range" min="1" max="22" step="0.5" value="${t.d}" oninput="selSet('d',this.value)"></label>
+  <div class="row"><select onchange="selSet('t',this.value)"><option value="l" ${t.t!='n'?'selected':''}>Lehtpuu</option><option value="n" ${t.t=='n'?'selected':''}>Okaspuu</option></select><button class="btn" onclick="selDel()">${t.src=='user'?'Kustuta puu':'Peida see puu'}</button></div>`}
+ else{const x=D.bld.find(z=>z.id==SEL.id);if(!x){SEL=null;return selUI()}const h=BH[x.id]!=null?BH[x.id]:x.h;
+  b.innerHTML=`<div class="row"><b>Hoone (OSM ${esc(x.id)})</b><span class="sub" id="sv">${h} m${x.guessed&&BH[x.id]==null?' (oletatud)':''}</span></div>
+  <label class="t">Kõrgus <input type="range" min="3" max="120" step="0.5" value="${h}" oninput="selSet('bh',this.value)"></label>
+  <div class="row"><button class="btn" onclick="selDel()">Lähtesta kõrgus</button></div>`}
+}
+function selSet(k,v){
+ if(!SEL)return;
+ if(SEL.kind=='tree'){const t=TR.find(z=>z.id==SEL.id);if(!t)return;t[k]=k=='t'?v:+v;
+  if(t.src=='user'){const m=MY.find(z=>z.id==t.id);if(m){m[k]=t[k];LS.set('bbshade_trees',MY)}}else{TO[t.id]=Object.assign(TO[t.id]||{},{[k]:t[k]});LS.set('bbshade_to',TO)}
+  refreshTree(t.id);const sv=$('#sv');if(sv)sv.textContent=`${t.h} m, võra ${t.d} m`}
+ else{BH[SEL.id]=+v;LS.set('bbshade_bh',BH);refreshBld(SEL.id);const sv=$('#sv');if(sv)sv.textContent=v+' m'}
+}
+function selDel(){
+ if(!SEL)return;
+ if(SEL.kind=='tree'){const t=TR.find(z=>z.id==SEL.id);if(!t)return;if(t.src=='user'){MY=MY.filter(z=>z.id!=t.id);LS.set('bbshade_trees',MY)}else{HIDE.add(t.id);LS.set('bbshade_hide',[...HIDE])}SEL=null;rebuild();selUI();rebuildStat()}
+ else{delete BH[SEL.id];LS.set('bbshade_bh',BH);refreshBld(SEL.id);selUI()}
+}
+
+/* ---------- Võrdlus ja salvestus ---------- */
+function drawCells(times,cw,ch,cols){
+ const rows=Math.ceil(times.length/cols),HH=70,c=document.createElement('canvas');c.width=cw*cols;c.height=ch*rows+HH;const x=c.getContext('2d');
+ x.fillStyle='#0b1220';x.fillRect(0,0,c.width,c.height);
+ const FF='-apple-system,Segoe UI,Roboto,sans-serif';
+ x.textBaseline='middle';x.fillStyle='#fbbf24';x.font='bold 28px '+FF;x.fillText('☀ '+(NAME||'Päikese- ja varjukaart'),16,24);
+ x.fillStyle='#cbd5e1';x.font='19px '+FF;const [y,mo,d]=DATE.split('-');x.fillText(`${+d}.${+mo}.${y}`+(RISE==null?'':` · päikesetõus ${hm(RISE)} · loojang ${hm(SET)}`)+' · puud/hooned: OSM',16,54);
+ const keep={min:MIN,pr:renderer.getPixelRatio()};
+ renderer.setPixelRatio(1);renderer.setSize(cw,ch,false);camera.aspect=cw/ch;camera.updateProjectionMatrix();
+ times.forEach((m,i)=>{setSun(m,true);renderer.render(scene,camera);const px=(i%cols)*cw,py=HH+Math.floor(i/cols)*ch;x.drawImage(renderer.domElement,px,py,cw,ch);
+  const s=sunPos(dateAt(m),LAT,LON),txt=hm2(m)+(s.alt>0?`  ☀ ${Math.round(s.alt/RAD)}° ${windOf(s.az)}`:'  päike all');
+  x.font='bold 30px '+FF;const w=x.measureText(txt).width+22;x.fillStyle='rgba(11,18,32,.82)';x.fillRect(px+10,py+10,w,44);x.fillStyle='#fbbf24';x.fillText(txt,px+21,py+33);
+  x.strokeStyle='#0b1220';x.lineWidth=3;x.strokeRect(px,py,cw,ch)});
+ renderer.setPixelRatio(keep.pr);resize();setSun(keep.min);
+ return c;
+}
+let CMP=null,CMPT=[];
+function cmpGo(){
+ const t=[0,1,2,3].map(i=>tmin($('#c'+i).value)).filter(v=>v!=null);if(!t.length){toast('Lisa kellaajad');return}
+ const c=drawCells(t,640,480,2);CMP=c;CMPT=t;const box=$('#cmp');box.innerHTML='';box.appendChild(c);$('#cmpact').style.display='flex';c.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function single(){return drawCells([MIN],1200,900,1)}
+const blobOf=(c,q)=>new Promise(ok=>c.toBlob(ok,'image/jpeg',q||.9));
+async function shareCanvas(c,name){
+ const b=await blobOf(c),f=new File([b],name,{type:'image/jpeg'});
+ try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}catch(e){if(e&&e.name=='AbortError')return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+}
+const fname=()=>'varjukaart_'+DATE+'_'+(CMPT.length?'':hm2(MIN).replace(':',''))+'.jpg';
+async function saveImg(c,times,kind){
+ const id='shade_'+Date.now(),url=c.toDataURL('image/jpeg',.86);
+ try{await idbPut(id,url)}catch(e){toast('Salvestamine ebaõnnestus (mälu täis?)');return}
+ const L=LS.get('bbshade_imgs',[]);L.unshift({id,ts:Date.now(),n:NAME,date:DATE,lat:LAT,lon:LON,times,kind});LS.set('bbshade_imgs',L.slice(0,80));
+ toast('Salvestatud recce kogumikku');gal();
+}
+async function gal(){
+ const L=LS.get('bbshade_imgs',[]),g=$('#gal');$('#galn').textContent=L.length?'('+L.length+')':'';g.innerHTML='';
+ for(const it of L.slice(0,24)){const u=await idbGet(it.id);if(!u)continue;const im=new Image();im.src=u;im.alt='';im.onclick=()=>ovOpen(it,u);g.appendChild(im)}
+ $('#galh').style.display=L.length?'none':'block';
+}
+let OVI=null;function ovOpen(it,u){OVI=it;$('#ovi').src=u;$('#ov').style.display='flex'}
+async function ovDel(){if(!OVI)return;if(!confirm('Kustutan selle pildi?'))return;await idbDel(OVI.id);LS.set('bbshade_imgs',LS.get('bbshade_imgs',[]).filter(z=>z.id!=OVI.id));$('#ov').style.display='none';OVI=null;gal()}
+async function ovShare(){if(!OVI)return;const u=await idbGet(OVI.id);if(!u)return;const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);shareCanvas(c,'varjukaart_'+OVI.date+'.jpg')};im.src=u}
+
+/* ---------- Käivitus ---------- */
+let playT=null;
+function play(on){clearInterval(playT);playT=null;$('#play').textContent=on?'⏸ Peata':'▶ Esita';if(!on)return;playT=setInterval(()=>{let m=MIN+5;if(m>+$('#tr').max)m=+$('#tr').min;setSun(m)},90)}
+function bind(){
+ bindCtl();
+ $('#tr').oninput=e=>{play(false);setSun(+e.target.value)};
+ $('#tm').onclick=()=>{play(false);setSun(clamp(MIN-15,+$('#tr').min,+$('#tr').max))};
+ $('#tp').onclick=()=>{play(false);setSun(clamp(MIN+15,+$('#tr').min,+$('#tr').max))};
+ $('#play').onclick=()=>play(!playT);
+ if(CALL!=null){$('#bcall').style.display='';$('#bcall').textContent='Call '+hm2(CALL);$('#bcall').onclick=()=>{play(false);setSun(clamp(CALL,+$('#tr').min,+$('#tr').max))}}
+ if(WRAP!=null){$('#bwrap').style.display='';$('#bwrap').textContent='Wrap '+hm2(WRAP);$('#bwrap').onclick=()=>{play(false);setSun(clamp(WRAP,+$('#tr').min,+$('#tr').max))}}
+ if(CALL!=null&&WRAP!=null)$('#pcw').style.display='';
+ $('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(RISE)}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(SET)}};
+ $('#date').value=DATE;$('#date').onchange=e=>{if(!e.target.value)return;play(false);DATE=e.target.value;started=false;setupTime();CMP=null;$('#cmp').innerHTML='';$('#cmpact').style.display='none'};
+ document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+ $('#gm').onchange=e=>setGround(e.target.value);
+ $('#lt').onchange=e=>{gT.visible=gW.visible=e.target.checked;need()};$('#lp').onchange=e=>{gP.visible=e.target.checked;need()};
+ $('#addt').onclick=()=>{addMode=!addMode;$('#addt').classList.toggle('on',addMode);$('#addt').textContent=addMode?'✓ Lisamise režiim: vajuta kaardil':'＋ Lisa puu';$('#addh').textContent=addMode?'Iga vajutus kaardil paneb puu. Lõpeta nupuga.':'Vajuta kaardil kohta, kuhu puu läheb.'};
+ $('#dh').oninput=e=>$('#dhv').textContent=e.target.value+' m';$('#dd').oninput=e=>$('#ddv').textContent=e.target.value+' m';
+ $('#unhide').onclick=()=>{HIDE.clear();LS.set('bbshade_hide',[]);rebuild();rebuildStat()};
+ $('#reload').onclick=()=>loadData(true);
+ $('#pday').onclick=()=>{if(RISE==null)return;[0,1,2,3].forEach(i=>$('#c'+i).value=hm2(Math.round((RISE+60+(SET-RISE-120)*i/3)/15)*15))};
+ $('#pcw').onclick=()=>{let w=WRAP;if(w<CALL)w+=1440;[0,1,2,3].forEach(i=>$('#c'+i).value=hm2(Math.round((CALL+(w-CALL)*i/3)/15)*15))};
+ $('#cmpgo').onclick=cmpGo;
+ $('#csave').onclick=()=>CMP&&saveImg(CMP,CMPT,'cmp');$('#cshare').onclick=()=>CMP&&shareCanvas(CMP,'varjukaart_'+DATE+'_vordlus.jpg');
+ $('#ssave').onclick=()=>{const c=single();saveImg(c,[MIN],'one')};
+ $('#ovx').onclick=()=>$('#ov').style.display='none';$('#ovd').onclick=ovDel;$('#ovs').onclick=ovShare;
+ selUI();gal();
+}
+async function start(){
+ if(started)return;
+ $('#locate').style.display='none';$('#app').style.display='block';
+ initGeo();initGL();bind();setupTime();started=true;
+ $('#place').textContent=(NAME?NAME+' · ':'')+LAT.toFixed(5)+', '+LON.toFixed(5);
+ setView('S');setGround('sat');
+ await loadData(false);
+}
+/* asukoha otsing, kui koordinaate ei antud */
+function coordsFrom(s){
+ s=String(s||'');let m=/@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(s)||/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(s)||/[?&](?:q|ll|query|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/.exec(s)||/^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/.exec(s);
+ return m?[+m[1],+m[2]]:null}
+async function geocode(q){
+ const c=coordsFrom(q);if(c)return {lat:c[0],lon:c[1],n:q};
+ try{const r=await ft('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),9000),j=await r.json();if(j&&j[0])return {lat:+j[0].lat,lon:+j[0].lon,n:q}}catch(e){}
+ try{const parts=q.split(',').map(s=>s.trim()).filter(Boolean);for(const nm of [parts[parts.length-1],parts[0]]){if(!nm)continue;const r=await ft('https://geocoding-api.open-meteo.com/v1/search?count=1&language=et&name='+encodeURIComponent(nm),9000),j=await r.json();if(j.results&&j.results[0])return {lat:j.results[0].latitude,lon:j.results[0].longitude,n:q}}}catch(e){}
+ return null}
+function locateUI(msg){
+ $('#locate').style.display='block';$('#lmsg').textContent=msg||'';
+ const go=async(v)=>{if(!v){$('#lmsg').textContent='Asukohta ei leitud';return}LAT=v.lat;LON=v.lon;if(!NAME)NAME=v.n||'';start()};
+ $('#lgo').onclick=async()=>{const q=$('#lq').value.trim();if(!q)return;$('#lmsg').textContent='Otsin…';go(await geocode(q))};
+ $('#lgps').onclick=()=>{$('#lmsg').textContent='Küsin asukohta…';if(!navigator.geolocation){$('#lmsg').textContent='Seade ei toeta asukohta';return}navigator.geolocation.getCurrentPosition(p=>{NAME=NAME||'Minu asukoht';go({lat:p.coords.latitude,lon:p.coords.longitude})},()=>{$('#lmsg').textContent='GPS ei vastanud. Kirjuta aadress.'},{timeout:10000,maximumAge:300000})};
+}
+if(Q.get('embed')){document.querySelector('header').style.display='none'}
+$('#back').onclick=()=>{if(history.length>1&&document.referrer)history.back();else location.href='./'};
+(async function(){
+ if(typeof THREE==='undefined'){$('#locate').style.display='block';$('#locate').innerHTML='<h3>Varjukaart</h3><div>3D-teeki ei saanud laadida. Kontrolli internetiühendust ja ava leht uuesti.</div>';return}
+ if(isFinite(LAT)&&isFinite(LON))return start();
+ const q=Q.get('q');
+ if(q){locateUI('Otsin asukohta…');$('#lq').value=q;const v=await geocode(q);if(v){LAT=v.lat;LON=v.lon;return start()}locateUI('Aadressi ei leitud. Kleebi Mapsi link või koordinaadid.')}
+ else locateUI('');
+})();
+</script>
+</body>
+</html>
