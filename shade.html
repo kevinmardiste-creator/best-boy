@@ -521,6 +521,7 @@ function coordsFrom(s){
  return m?[+m[1],+m[2]]:null}
 async function geocode(q){
  const c=coordsFrom(q);if(c)return {lat:c[0],lon:c[1],n:q};
+ try{const r0=await ft('https://inaadress.maaamet.ee/inaadress/gazetteer?results=1&address='+encodeURIComponent(q),9000),j0=await r0.json(),a0=j0&&j0.addresses&&j0.addresses[0];if(a0&&a0.viitepunkt_b&&a0.viitepunkt_l)return {lat:+a0.viitepunkt_b,lon:+a0.viitepunkt_l,n:q}}catch(e){}
  try{const r=await ft('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),9000),j=await r.json();if(j&&j[0])return {lat:+j[0].lat,lon:+j[0].lon,n:q}}catch(e){}
  try{const parts=q.split(',').map(s=>s.trim()).filter(Boolean);for(const nm of [parts[parts.length-1],parts[0]]){if(!nm)continue;const r=await ft('https://geocoding-api.open-meteo.com/v1/search?count=1&language=et&name='+encodeURIComponent(nm),9000),j=await r.json();if(j.results&&j.results[0])return {lat:j.results[0].latitude,lon:j.results[0].longitude,n:q}}}catch(e){}
  return null}
