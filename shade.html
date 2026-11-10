@@ -66,7 +66,7 @@ label.t{display:flex;align-items:center;gap:6px}
   <div id="compass"><u id="cu"><i>N</i><b id="cs"></b></u></div>
   <div id="busy"></div>
   <div id="night">Päike on silmapiiri all</div>
-  <div id="hint">Telefon: 1 sõrm pöörab, 2 sõrme suumivad ja liigutavad · Arvuti: hiir lohistab kaarti, parem hiirenupp pöörab, hiireratas suumib, topeltklõps keskendab, nooled/WASD liiguvad, Q/E pöörab</div>
+  <div id="hint">Telefon: 1 sõrm pöörab, 2 sõrme suumivad ja liigutavad · Arvuti: hiir lohistab kaarti, parem hiirenupp või Option/Cmd/Shift/Ctrl + lohistamine pöörab, hiireratas suumib, topeltklõps keskendab, nooled/WASD liiguvad, Q/E pöörab</div>
  </div>
 
  <section class="card">
@@ -474,7 +474,7 @@ const clampT=()=>{cam.tgt.x=clamp(cam.tgt.x,-GR,GR);cam.tgt.z=clamp(cam.tgt.z,-G
 function bindCtl(){
  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size==1){moved=0;tapT=performance.now();tapXY=[e.clientX,e.clientY]}else{moved=99;const a=[...ptrs.values()];g0={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2}}});
  cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;
-  if(ptrs.size==1){moved+=Math.abs(dx)+Math.abs(dy);if(e.pointerType=='mouse'){if(e.buttons&6||e.shiftKey||e.ctrlKey){cam.az-=dx*0.007;cam.pol=clamp(cam.pol-dy*0.006,0.03,1.45)}else{const a=gpt(p.x,p.y),b=gpt(e.clientX,e.clientY);if(a&&b){cam.tgt.x+=a.x-b.x;cam.tgt.z+=a.z-b.z;clampT()}}}else{cam.az-=dx*0.007;cam.pol=clamp(cam.pol-dy*0.006,0.03,1.45)}p.x=e.clientX;p.y=e.clientY;applyCam()}
+  if(ptrs.size==1){moved+=Math.abs(dx)+Math.abs(dy);if(e.pointerType=='mouse'){if(e.buttons&6||e.shiftKey||e.ctrlKey||e.altKey||e.metaKey){cam.az-=dx*0.007;cam.pol=clamp(cam.pol-dy*0.006,0.03,1.45)}else{const a=gpt(p.x,p.y),b=gpt(e.clientX,e.clientY);if(a&&b){cam.tgt.x+=a.x-b.x;cam.tgt.z+=a.z-b.z;clampT()}}}else{cam.az-=dx*0.007;cam.pol=clamp(cam.pol-dy*0.006,0.03,1.45)}p.x=e.clientX;p.y=e.clientY;applyCam()}
   else if(ptrs.size==2){p.x=e.clientX;p.y=e.clientY;const a=[...ptrs.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2;if(g0){if(g0.d>10&&d>10)cam.dist=clamp(cam.dist*g0.d/d,40,1300);pan(mx-g0.mx,my-g0.my)}g0={d,mx,my};applyCam()}});
  const up=e=>{if(!ptrs.has(e.pointerId))return;const was=ptrs.size;ptrs.delete(e.pointerId);if(was==1&&moved<9&&performance.now()-tapT<500&&e.type=='pointerup')tap(e.clientX,e.clientY);if(ptrs.size<2)g0=null;if(ptrs.size==1){const a=[...ptrs.values()][0];moved=99}};
  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
