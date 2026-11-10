@@ -316,13 +316,12 @@ let LODON=Q.get('lod')!=='0';
 const matL=new THREE.MeshLambertMaterial({color:0xd8d0c0,side:THREE.DoubleSide});
 function inObbP(o,x,y,p){const [qx,qy,qz,qw]=o.quaternion,dx=x-o.center[0],dy=y-o.center[1],lx=(1-2*(qy*qy+qz*qz))*dx+2*(qx*qy+qz*qw)*dy,ly=2*(qx*qy-qz*qw)*dx+(1-2*(qx*qx+qz*qz))*dy;return Math.abs(lx)<=o.halfSize[0]+p&&Math.abs(ly)<=o.halfSize[1]+p}
 async function fetchLod2(){
- const [E0,N0]=L3301(LAT,LON),R=GR+60,key='lod2:'+E0.toFixed(0)+','+N0.toFixed(0)+','+Math.round(R);
- const c=await idbGet(key);if(c&&c.v==2)return c;
- const pg={},page=i=>pg[i]||(pg[i]=ft(LB+'/nodepages/'+i+'?f=json',15000).then(r=>{if(!r.ok)throw new Error('I3S '+r.status);return r.json()}).then(j=>j.nodes)),nd=async i=>(await page(Math.floor(i/64)))[i%64];
- const leaves=[],q=[0];
- while(q.length){const n=await nd(q.shift());if(!n||!inObbP(n.obb,E0,N0,R))continue;if(n.children&&n.children.length)n.children.forEach(x=>q.push(x));else if(n.mesh)leaves.push(n)}
- const parts=await Promise.all(leaves.map(async n=>{const r=await ft(LB+'/nodes/'+n.mesh.geometry.resource+'/geometries/0',40000);if(!r.ok)throw new Error('I3S '+r.status);return {c:n.obb.center,b:await r.arrayBuffer()}}));
- const out={v:2,E0,N0,R,parts};idbPut(key,out).catch(()=>{});return out;
+ const [E0,N0]=L3301(LAT,LON),R=GR+40;
+ const pg={},page=i=>pg[i]||(pg[i]=(async()=>{const k='lodp:'+i,c=await idbGet(k);if(c)return c;const r=await ft(LB+'/nodepages/'+i+'?f=json',20000);if(!r.ok)throw new Error('I3S '+r.status);const n=(await r.json()).nodes;idbPut(k,n).catch(()=>{});return n})()),nd=async i=>(await page(Math.floor(i/64)))[i%64];
+ const leaves=[];let lvl=[0];
+ while(lvl.length){const ns=await Promise.all(lvl.map(nd));lvl=[];ns.forEach(n=>{if(!n||!inObbP(n.obb,E0,N0,R))return;if(n.children&&n.children.length)lvl.push(...n.children);else if(n.mesh)leaves.push(n)})}
+ const parts=await Promise.all(leaves.map(async n=>{const rid=n.mesh.geometry.resource,k='lodg:'+rid;let b=await idbGet(k);if(!b){const r=await ft(LB+'/nodes/'+rid+'/geometries/0',40000);if(!r.ok)throw new Error('I3S '+r.status);b=await r.arrayBuffer();idbPut(k,b).catch(()=>{})}return {c:n.obb.center,b}}));
+ return {E0,N0,R,parts};
 }
 function parseLod2(L){
  const lim=GR+30,P=[];let nb=0,zs=[];
@@ -345,10 +344,11 @@ function lodMeshes(Lo){return Lo.parts.map(q=>{const g=new THREE.BufferGeometry(
 {const c=$('#l2');if(c){c.checked=LODON;c.onchange=()=>{LODON=c.checked;if(LODON&&!D.lod&&inEE())loadData();else{if(!LODON)D.lod=null;rebuild()}}}}
 async function loadData(force){
  busy('Laen hooneid ja puid…');
+ const lp=(LODON&&inEE())?fetchLod2().then(x=>({x}),e=>({e})):null;
  let ok=false,err=null;
  if(inEE()){try{const r=await fetchEtak(force);D=parseEtak(r.j);ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=e}}
  if(!ok){try{const r=await fetchOvp(force);D=parseOvp(r.j);D.src='OSM';ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=err||e}}
- if(ok&&D.src=='ETAK'){D.lod=null;if(LODON){busy('Laen 3D hooneid…');try{D.lod=parseLod2(await fetchLod2())}catch(e){toast('3D hoonete laadimine ebaõnnestus. Kasutan lihtsustatud hooneid.')}}}
+ if(ok&&D.src=='ETAK'){D.lod=null;if(lp){rebuild();busy('Laen katuseformidega hooneid…');const r=await lp;if(r.x){try{D.lod=parseLod2(r.x)}catch(e){r.e=e}}if(!D.lod)toast('3D hoonete laadimine ebaõnnestus. Kasutan lihtsustatud hooneid.')}}
  if(ok)$('#dstat').textContent='';
  else{D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(err&&err.message||'võrk')+'). Vajuta "Värskenda andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
  busy('');rebuild();
@@ -411,13 +411,13 @@ function refreshTree(id){const t=TR.find(z=>z.id==id),old=tM.get(id);if(!t)retur
 function refreshBld(id){const b=D.bld.find(z=>z.id==id),old=bM.get(id);if(!b)return;if(old){gB.remove(old);old.geometry.dispose();PICK=PICK.filter(p=>p!==old)}const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==id)m.material=matBs;gB.add(m);bM.set(id,m);PICK.push(m);need()}
 
 /* ---------- Päikese tee ja valgus ---------- */
-const RS=185;
+let RS=185;function syncRS(){RS=GR+50;sunBall.scale.setScalar(RS/185)}
 const sdir=(s,r)=>new THREE.Vector3(Math.sin(s.az)*Math.cos(s.alt)*r,Math.sin(s.alt)*r,-Math.cos(s.az)*Math.cos(s.alt)*r);
 function buildSunPath(){
- clearG(gP);if(RISE==null)return;
+ clearG(gP);syncRS();if(RISE==null)return;
  const pts=[];for(let m=RISE-10;m<=SET+10;m+=10){const s=sunPos(dateAt(m),LAT,LON);if(s.alt<0)continue;pts.push(sdir(s,RS))}
  if(pts.length>1)gP.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xfbbf24})));
- for(let h=Math.ceil(RISE/60);h*60<=SET;h++){const s=sunPos(dateAt(h*60),LAT,LON);if(s.alt<0)continue;const p=sdir(s,RS),d=new THREE.Mesh(new THREE.SphereGeometry(2.2,8,6),new THREE.MeshBasicMaterial({color:0xfbbf24}));d.position.copy(p);gP.add(d);const l=mkLabel(String(h%24),11,'#fde68a');l.position.copy(p).add(new THREE.Vector3(0,10,0));gP.add(l)}
+ for(let h=Math.ceil(RISE/60);h*60<=SET;h++){const s=sunPos(dateAt(h*60),LAT,LON);if(s.alt<0)continue;const p=sdir(s,RS),d=new THREE.Mesh(new THREE.SphereGeometry(2.2*RS/185,8,6),new THREE.MeshBasicMaterial({color:0xfbbf24}));d.position.copy(p);gP.add(d);const l=mkLabel(String(h%24),11*RS/185,'#fde68a');l.position.copy(p).add(new THREE.Vector3(0,10*RS/185,0));gP.add(l)}
  const n=mkLabel('N',22,'#fff');n.position.set(0,6,-GR*0.93);gP.add(n);
  gP.visible=$('#lp').checked;
 }
@@ -430,7 +430,7 @@ function setSun(min,quiet){
  dl.intensity=k*CF;hemi.intensity=(0.3+(0.32+CH)*k)*EX;
  if(shadowMat)shadowMat.opacity=0.55*k*CO;
  {const g=(typeof gGround!=='undefined'&&gGround)?gGround.children[0]:null;if(g&&g.material&&g.material.color){const f=(0.28+0.72*k)*[1,.8,.55][CL];g.material.userData.g=[1,.8,.62][CL];if(g.material.userData.sh)g.material.userData.sh.uniforms.uG.value=g.material.userData.g;g.material.color.setRGB(f*(0.86+0.14*f),f*(0.92+0.08*f),f)}}
- sunBall.position.copy(sdir(s,RS));sunBall.visible=up;
+ syncRS();sunBall.position.copy(sdir(s,RS));sunBall.visible=up;
  need();if(quiet)return;
  $('#tbig').textContent=hm2(min);$('#tr').value=min;
  $('#tinfo').innerHTML=hm2(min)+'<small>'+(up?`päike ${Math.round(s.alt/RAD)}° · ${Math.round(s.az/RAD)}° ${windOf(s.az)}`:'päike silmapiiri all')+'</small>';
