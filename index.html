@@ -14,7 +14,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
-.ro input,.ro select,.ro textarea,.ro button,.ro [onclick]{pointer-events:none;opacity:.65}
+.ro input,.ro select,.ro textarea,.ro button{pointer-events:none;opacity:.65}
+.ro [onchange*="gSetBad"],.ro [onclick*="gSetBad"],.ro [onchange*="'dn'"]{pointer-events:auto;opacity:1}
 :root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{background:#0f172a;color:#f8fafc;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -870,15 +871,15 @@ async function tmAdd(){const e=($('#tme').value||'').trim().toLowerCase(),n=($('
 async function tmSet(e,ro){try{await SY.fs.collection('members').doc(e).update({role:ro})}catch(x){alert('Muutmine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 async function tmDel(e){if(!confirm('Eemaldan '+e+' meeskonnast? Tema isiklikud andmed jäävad alles.'))return;try{await SY.fs.collection('members').doc(e).delete()}catch(x){alert('Eemaldamine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 /* ---------- Ühine andmeruum (kalender, tehnika, laenutused) ---------- */
-const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0},SHC=['calendar','gear','loans','projects'];
-const er=()=>TM.view||TM.role,shMgrV=()=>['admin','gaffer','bestboy'].includes(er()),shMgr=()=>['admin','gaffer','bestboy'].includes(TM.role),shW=c=>c=='loans'?!!TM.role:shMgr();
+const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0},SHC=['calendar','gear','loans','projects','flags'];
+const er=()=>TM.view||TM.role,shMgrV=()=>['admin','gaffer','bestboy'].includes(er()),shMgr=()=>['admin','gaffer','bestboy'].includes(TM.role),shW=c=>(c=='loans'||c=='flags')?!!TM.role:shMgr();
 function shStop(){SH.un.forEach(f=>{try{f()}catch(e){}});SH.un=[];SH.ready=0;SH.got={};SH.last={}}
-function shStart(){shStop();SH.rem={calendar:new Map(),gear:new Map(),loans:new Map(),projects:new Map()};
+function shStart(){shStop();SH.rem={calendar:new Map(),gear:new Map(),loans:new Map(),projects:new Map(),flags:new Map()};
  SHC.forEach(c=>SH.un.push(SY.fs.collection(c).onSnapshot({includeMetadataChanges:true},s=>{if(s.metadata.fromCache&&s.empty)return;const m=new Map();s.docs.forEach(d=>{const x=d.data();try{m.set(d.id,{id:d.id,pid:x.pid,o:x.o||0,item:JSON.parse(x.j),sig:x.j+'|'+(x.o||0)+(x.pid||'')})}catch(e){}});SH.rem[c]=m;SH.got[c]=1;if(SHC.every(k=>SH.got[k])){SH.ready=1;clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),150)}},e=>{syMsg('☁ Ühiste andmete viga ('+(e&&e.code||'?')+')')})))}
 function shLocal(){const m=new Map();
  S.cal.forEach((e,i)=>{if(!e.id)e.id=uid();m.set('calendar/'+e.id,{c:'calendar',id:e.id,d:{j:JSON.stringify(e),o:i}})});
  S.projects.forEach(p=>{m.set('projects/'+p.id,{c:'projects',id:p.id,d:{j:JSON.stringify({name:p.name,glists:p.glists||{}}),o:0}});
-  (p.gear||[]).forEach((g,i)=>{if(!g.id)g.id=uid();m.set('gear/'+p.id+'_'+g.id,{c:'gear',id:p.id+'_'+g.id,d:{j:JSON.stringify(g),pid:p.id,o:i}})});
+  (p.gear||[]).forEach((g,i)=>{if(!g.id)g.id=uid();const {bq,bad,dn,...gg}=g;m.set('gear/'+p.id+'_'+g.id,{c:'gear',id:p.id+'_'+g.id,d:{j:JSON.stringify(gg),pid:p.id,o:i}});if(bq>0||bad||dn)m.set('flags/'+p.id+'_'+g.id,{c:'flags',id:p.id+'_'+g.id,d:{j:JSON.stringify({bq,bad,dn}),pid:p.id,o:0}})});
   (p.loans||[]).forEach((l,i)=>{if(!l.id)l.id=uid();m.set('loans/'+p.id+'_'+l.id,{c:'loans',id:p.id+'_'+l.id,d:{j:JSON.stringify(l),pid:p.id,o:i}})})});
  return m}
 const shSig=d=>d.j+'|'+(d.o||0)+(d.pid||'');
@@ -901,7 +902,7 @@ function shApply(force){try{if(!SH.ready)return;
  const snap=()=>JSON.stringify([S.cal,S.projects.map(p=>[p.id,p.name,p.glists,p.gear,p.loans])]),before=snap(),byO=(x,y)=>x.o-y.o;
  S.cal=[...R.calendar.values()].sort(byO).map(x=>x.item);
  R.projects.forEach((x,id)=>{let p=S.projects.find(q=>q.id==id);if(!p){p=newP(x.item.name||'Projekt');p.id=id;S.projects.push(p)}p.name=x.item.name||p.name;p.glists=x.item.glists||{};
-  p.gear=[...R.gear.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item);p.loans=[...R.loans.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item)});
+  p.gear=[...R.gear.values()].filter(g=>g.pid==id).sort(byO).map(g=>{const it=Object.assign({},g.item),f=R.flags.get(id+'_'+it.id);if(f)Object.assign(it,f.item);return it});p.loans=[...R.loans.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item)});
  if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));
  if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
  SH.last={};SHC.forEach(c=>R[c].forEach((x,id)=>SH.last[c+'/'+id]=x.sig));
