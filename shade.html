@@ -46,6 +46,11 @@ h3{margin:0 0 8px;font-size:15px;color:var(--ac2)}
 #ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:20;display:none;flex-direction:column;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 10px}
 #ov img{flex:1;min-height:0;object-fit:contain;width:100%}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#0f172a;border:1px solid #475569;padding:10px 14px;border-radius:12px;z-index:30;display:none;max-width:90%;text-align:center}
+@media (min-width:1000px) and (min-height:560px){
+#stage{position:fixed;left:0;right:420px;top:58px;bottom:0;height:auto;max-height:none;min-height:0}
+#app,#locate{margin-left:auto;width:420px;max-width:420px}
+body{padding-bottom:24px}
+}
 label.t{display:flex;align-items:center;gap:6px}
 </style>
 </head>
@@ -179,7 +184,7 @@ function unloc(x,n){const N=2**Z*256,px=CX+x/MPP,py=CY-n/MPP;return [Math.atan(M
 /* ---------- Stseen ---------- */
 const cv=$('#cv'),stage=$('#stage');
 let renderer,scene,camera,dl,hemi,gGround,gB,gL,gT,gW,gP,sunBall,shadowMat,gridH;
-const cam={az:0,pol:1.0,dist:480,tgt:null};
+const cam={az:0,pol:0.8,dist:460,tgt:null};
 let dirty=true,GR=420;
 function initGL(){
  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});
@@ -199,7 +204,7 @@ function initGL(){
 const need=()=>{dirty=true};
 function resize(){if(!renderer)return;const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();need()}
 function applyCam(){const s=Math.sin(cam.pol),c=Math.cos(cam.pol);camera.position.set(cam.tgt.x+cam.dist*s*Math.sin(cam.az),cam.tgt.y+cam.dist*c,cam.tgt.z+cam.dist*s*Math.cos(cam.az));camera.lookAt(cam.tgt);$('#cu').style.transform='rotate('+(cam.az/RAD)+'deg)';need()}
-function setView(v){const m={top:[0,0.03,420],S:[0,1.0,320],E:[Math.PI/2,1.0,320],N:[Math.PI,1.0,320],W:[-Math.PI/2,1.0,320]}[v];cam.az=m[0];cam.pol=m[1];cam.dist=m[2];cam.tgt.set(0,0,0);applyCam()}
+function setView(v){const m={top:[0,0.03,420],S:[0,0.85,340],E:[Math.PI/2,0.85,340],N:[Math.PI,0.85,340],W:[-Math.PI/2,0.85,340]}[v];cam.az=m[0];cam.pol=m[1];cam.dist=m[2];cam.tgt.set(0,0,0);applyCam()}
 
 const matB=new THREE.MeshLambertMaterial({color:0xd8d0c0}),matBs=new THREE.MeshLambertMaterial({color:0xfbbf24,emissive:0x664400}),
  matWood=new THREE.MeshLambertMaterial({color:0x2e5d34}),matTr=new THREE.MeshLambertMaterial({color:0x5b4636}),
