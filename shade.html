@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0b1220">
 <title>Päikese- ja varjukaart</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lerc@3.0.0/LercDecode.min.js"></script>
 <style>
 :root{--bg:#0b1220;--card:#1e293b;--card2:#334155;--tx:#e2e8f0;--sub:#94a3b8;--ac:#f59e0b;--ac2:#fbbf24}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -215,7 +216,7 @@ function setGround(kind){
  const x0=Math.floor((CX-GR/MPP)/256),x1=Math.floor((CX+GR/MPP)/256),y0=Math.floor((CY-GR/MPP)/256),y1=Math.floor((CY+GR/MPP)/256),nx=x1-x0+1,ny=y1-y0+1,W=nx*256*MPP,H=ny*256*MPP,
   cxm=((x0*256+nx*128)-CX)*MPP,czm=((y0*256+ny*128)-CY)*MPP;
  GR=Math.max(GR,0);
- const plane=(mat)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(W,H),mat);m.rotation.x=-Math.PI/2;m.position.set(cxm,0,czm);return m};
+ const plane=(mat)=>{const SG=Math.min(200,Math.max(1,Math.ceil(Math.max(W,H)/7)));const m=new THREE.Mesh(new THREE.PlaneGeometry(W,H,SG,SG),mat);m.rotation.x=-Math.PI/2;m.position.set(cxm,0,czm);m.userData.pl={cxm,czm};return m};
  let gm;
  if(kind=='none'){gm=plane(new THREE.MeshBasicMaterial({color:0x56607a}));gGround.add(gm);const gr=new THREE.GridHelper(Math.max(W,H),Math.round(Math.max(W,H)/25),0x7b86a3,0x6a7592);gr.position.set(cxm,0.05,czm);gGround.add(gr)}
  else{
@@ -227,6 +228,7 @@ function setGround(kind){
  }
  const sm=new THREE.ShadowMaterial({opacity:0.55,color:0x050a18});shadowMat=sm;
  const sp=plane(sm);sp.position.y=0.08;sp.receiveShadow=true;gGround.add(sp);
+ if(TER)applyTerrain();
  const sc=dl.shadow.camera,R=Math.max(W,H)*0.72;sc.left=-R;sc.right=R;sc.top=R;sc.bottom=-R;sc.near=100;sc.far=3200;sc.updateProjectionMatrix();
  setSun(MIN);need();
 }
@@ -307,6 +309,19 @@ function parseEtak(j){
  out.st={b:out.bld.length,g:out.bld.filter(b=>b.guessed).length,t:out.trees.length,w:out.woods.length};
  return out;
 }
+/* ---------- Reljeef: Maa- ja Ruumiameti DTM (LERC) ---------- */
+const DTB='https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/DTM_3301/ImageServer/tile/',DLV=11,DT=500;
+let TER=null;
+async function fetchDtm(){
+ if(Q.get('ter')==='0'||typeof Lerc==='undefined')return null;
+ const [E0,N0]=L3301(LAT,LON),R=GR+80,c0=Math.floor((E0-R-40500)/DT),c1=Math.floor((E0+R-40500)/DT),r0=Math.floor((7017000-N0-R)/DT),r1=Math.floor((7017000-N0+R)/DT),T=new Map(),jobs=[];
+ for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)jobs.push((async()=>{const k='dtm:'+DLV+'/'+r+'/'+c;let b=await idbGet(k);if(!b){const x=await ft(DTB+DLV+'/'+r+'/'+c,20000);if(!x.ok)return;b=await x.arrayBuffer();idbPut(k,b).catch(()=>{})}const d=Lerc.decode(b);if(d&&d.pixels&&d.pixels[0]&&d.width==257)T.set(r+'/'+c,d.pixels[0])})());
+ await Promise.all(jobs);if(!T.size)return null;
+ const h=(E,N)=>{const c=Math.floor((E-40500)/DT),r=Math.floor((7017000-N)/DT),a=T.get(r+'/'+c);if(!a)return null;const q=DT/256,fx=(E-40500-c*DT)/q,fy=(7017000-r*DT-N)/q,ix=Math.min(255,Math.max(0,Math.floor(fx))),iy=Math.min(255,Math.max(0,Math.floor(fy))),tx=fx-ix,ty=fy-iy,v=(x,y)=>a[y*257+x],A=v(ix,iy),B=v(ix+1,iy),C=v(ix,iy+1),Dd=v(ix+1,iy+1);if(!(A>-50&&B>-50&&C>-50&&Dd>-50))return null;return (A*(1-tx)+B*tx)*(1-ty)+(C*(1-tx)+Dd*tx)*ty};
+ const z0=h(E0,N0);if(z0==null)return null;return {E0,N0,h,z0};
+}
+function GH(x,z){if(!TER)return 0;const v=TER.h(TER.E0+x,TER.N0-z);return v==null?0:v-TER.z0}
+function applyTerrain(){gGround.children.forEach(m=>{const p=m.userData.pl;if(!p)return;const a=m.geometry.attributes.position;for(let i=0;i<a.count;i++)a.setZ(i,GH(a.getX(i)+p.cxm,p.czm-a.getY(i)));a.needsUpdate=true;m.geometry.computeBoundingSphere();m.geometry.computeBoundingBox()});need()}
 /* ---------- Maa- ja Ruumiamet 3D hooned LOD2 (I3S SceneServer, katuseformid) ---------- */
 const LB='https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/Hooned_LOD2/SceneServer/layers/0';
 const LGE=Math.sqrt(2/298.257222101-1/298.257222101**2),lgm=p=>Math.cos(p)/Math.sqrt(1-LGE*LGE*Math.sin(p)**2),lgt=p=>Math.tan(Math.PI/4-p/2)/Math.pow((1-LGE*Math.sin(p))/(1+LGE*Math.sin(p)),LGE/2);
@@ -336,7 +351,7 @@ function parseLod2(L){
   keep.forEach(([a,e])=>{for(let i=a;i<e;i++,o++){p[o*3]=pt.c[0]+pos[i*3]-L.E0;p[o*3+1]=pt.c[2]+pos[i*3+2];p[o*3+2]=-(pt.c[1]+pos[i*3+1]-L.N0);nn[o*3]=nor[i*3];nn[o*3+1]=nor[i*3+2];nn[o*3+2]=-nor[i*3+1];if(Math.hypot(p[o*3],p[o*3+2])<70)zs.push(p[o*3+1])}});
   P.push({p,n:nn});
  });
- let zr=0;if(zs.length){zs.sort((a,b)=>a-b);zr=zs[Math.floor(zs.length*0.02)]}else if(P.length){zr=Infinity;P.forEach(q=>{for(let i=1;i<q.p.length;i+=3)zr=Math.min(zr,q.p[i])})}
+ let zr=0;if(TER)zr=TER.z0;else if(zs.length){zs.sort((a,b)=>a-b);zr=zs[Math.floor(zs.length*0.02)]}else if(P.length){zr=Infinity;P.forEach(q=>{for(let i=1;i<q.p.length;i+=3)zr=Math.min(zr,q.p[i])})}
  P.forEach(q=>{for(let i=1;i<q.p.length;i+=3)q.p[i]-=zr});
  return {parts:P,nb};
 }
@@ -344,10 +359,11 @@ function lodMeshes(Lo){return Lo.parts.map(q=>{const g=new THREE.BufferGeometry(
 {const c=$('#l2');if(c){c.checked=LODON;c.onchange=()=>{LODON=c.checked;if(LODON&&!D.lod&&inEE())loadData();else{if(!LODON)D.lod=null;rebuild()}}}}
 async function loadData(force){
  busy('Laen hooneid ja puid…');
- const lp=(LODON&&inEE())?fetchLod2().then(x=>({x}),e=>({e})):null;
+ const lp=(LODON&&inEE())?fetchLod2().then(x=>({x}),e=>({e})):null,dp=inEE()?fetchDtm().catch(()=>null):null;
  let ok=false,err=null;
  if(inEE()){try{const r=await fetchEtak(force);D=parseEtak(r.j);ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=e}}
  if(!ok){try{const r=await fetchOvp(force);D=parseOvp(r.j);D.src='OSM';ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=err||e}}
+ if(dp){TER=await dp;if(TER)applyTerrain()}
  if(ok&&D.src=='ETAK'){D.lod=null;if(lp){rebuild();busy('Laen katuseformidega hooneid…');const r=await lp;if(r.x){try{D.lod=parseLod2(r.x)}catch(e){r.e=e}}if(!D.lod)toast('3D hoonete laadimine ebaõnnestus. Kasutan lihtsustatud hooneid.')}}
  if(ok)$('#dstat').textContent='';
  else{D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(err&&err.message||'võrk')+'). Vajuta "Värskenda andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
@@ -358,11 +374,11 @@ function statTxt(){const s=D.st||{};if(D.lod)return `Maa-amet 3D: ${D.lod.nb} ho
 /* ---------- Mudelid ---------- */
 let PICK=[],SEL=null;const bM=new Map(),tM=new Map();
 function bldMesh(b){
- const eff=BH[b.id]!=null?BH[b.id]:b.h,base=b.base||0,depth=Math.max(1,eff-base);
+ const eff=BH[b.id]!=null?BH[b.id]:b.h,base=b.base||0;let gmn=1e9,gmx=-1e9;b.pts.forEach(p=>{const g=GH(p[0],-p[1]);gmn=Math.min(gmn,g);gmx=Math.max(gmx,g)});if(!isFinite(gmn)){gmn=0;gmx=0}const depth=Math.max(1,eff-base)+(gmx-gmn);
  const sh=new THREE.Shape(b.pts.map(p=>new THREE.Vector2(p[0],p[1])));
  (b.holes||[]).forEach(hp=>sh.holes.push(new THREE.Path(hp.map(p=>new THREE.Vector2(p[0],p[1])))));
  const m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false}),matB);
- m.rotation.x=-Math.PI/2;m.position.y=base;m.castShadow=true;m.receiveShadow=true;m.userData={kind:'bld',id:b.id};return m}
+ m.rotation.x=-Math.PI/2;m.position.y=base+gmn;m.castShadow=true;m.receiveShadow=true;m.userData={kind:'bld',id:b.id};return m}
 function treeGrp(t){
  const g=new THREE.Group(),th=t.h*0.4,mats=(SEL&&SEL.kind=='tree'&&SEL.id==t.id)?matCs:(t.src=='user'?matCu:matCr);
  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.3,th,6),matTr);tr.position.y=th/2;
@@ -370,7 +386,7 @@ function treeGrp(t){
  if(t.t=='n'){const ch=t.h-th*0.3;cr=new THREE.Mesh(new THREE.ConeGeometry(t.d/2,ch,8),mats);cr.position.y=th*0.3+ch/2}
  else{const ch=t.h*0.65;cr=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),mats);cr.scale.set(t.d/2,ch/2,t.d/2);cr.position.y=t.h-ch/2}
  [tr,cr].forEach(m=>{m.castShadow=true;m.receiveShadow=true;m.userData={kind:'tree',id:t.id}});
- g.add(tr,cr);g.position.set(t.x,0,-t.n);g.userData={id:t.id};return g}
+ g.add(tr,cr);g.position.set(t.x,GH(t.x,-t.n),-t.n);g.userData={id:t.id};return g}
 function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function woodTrees(ws){
  const SP=6.5,pos=[];
@@ -386,8 +402,8 @@ function woodTrees(ws){
   const im=new THREE.InstancedMesh(con?new THREE.ConeGeometry(1,1,7):new THREE.SphereGeometry(1,7,6),mat,L.length),col=new THREE.Color();
   L.forEach((t,i)=>{
    dm.rotation.set(0,t.c*6.28,0);
-   if(con){dm.scale.set(t.d/2,t.H*0.85,t.d/2);dm.position.set(t.p[0],t.H*0.15+t.H*0.425,-t.p[1])}
-   else{dm.scale.set(t.d/2,t.H*0.42,t.d/2);dm.position.set(t.p[0],t.H*0.58,-t.p[1])}
+   if(con){dm.scale.set(t.d/2,t.H*0.85,t.d/2);dm.position.set(t.p[0],GH(t.p[0],-t.p[1])+t.H*0.15+t.H*0.425,-t.p[1])}
+   else{dm.scale.set(t.d/2,t.H*0.42,t.d/2);dm.position.set(t.p[0],GH(t.p[0],-t.p[1])+t.H*0.58,-t.p[1])}
    dm.updateMatrix();im.setMatrixAt(i,dm.matrix);
    const pal=con?CC:CD;col.setHex(pal[Math.floor(t.c*pal.length)%pal.length]);col.offsetHSL(0,0,(t.c-0.5)*0.05);im.setColorAt(i,col)});
   im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;
