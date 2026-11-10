@@ -75,7 +75,7 @@ label.t{display:flex;align-items:center;gap:6px}
    <button class="btn" id="tm">−15</button><button class="btn" id="tp">+15</button>
    <button class="btn p" id="play">▶ Esita</button>
    <button class="btn" id="bcall" style="display:none">Call</button><button class="btn" id="bwrap" style="display:none">Wrap</button>
-   <button class="btn" id="brise">Tõus</button><button class="btn" id="bset">Loojang</button><button class="btn on" id="cl0">☀ Selge</button><button class="btn" id="cl1">⛅ Poolpilves</button><button class="btn" id="cl2">☁ Pilves</button>
+   <button class="btn" id="brise">Tõus</button><button class="btn" id="bset">Loojang</button><button class="btn on" id="cl0">☀ Selge</button><button class="btn" id="cl1">⛅ Poolpilves</button><button class="btn" id="cl2">☁ Pilves</button><button class="btn on" id="dsb">Pildi varjud: peidetud</button>
   </div>
   <div class="sub" id="sinfo" style="margin-top:6px"></div>
  </section>
@@ -218,7 +218,7 @@ function setGround(kind){
  else{
   const c=document.createElement('canvas');c.width=nx*256;c.height=ny*256;const x=c.getContext('2d');x.fillStyle='#56607a';x.fillRect(0,0,c.width,c.height);
   const tex=new THREE.CanvasTexture(c);tex.anisotropy=4;{const mt=new THREE.MeshBasicMaterial({map:tex});mt.userData.g=1;mt.onBeforeCompile=sh=>{sh.uniforms.uG={value:mt.userData.g};mt.userData.sh=sh;sh.fragmentShader=sh.fragmentShader.replace('void main()','uniform float uG;\nvoid main()').replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=pow(max(diffuseColor.rgb,vec3(0.0)),vec3(uG));')};gm=plane(mt)};gGround.add(gm);
-  let left=nx*ny,fail=0;const done=()=>{left--;tex.needsUpdate=true;need();if(left<=0&&tok==gTok){busy('');if(fail>=nx*ny)toast('Kaardipilti ei saadud (võrk?). Varjud töötavad ka ilma.')}};
+  let left=nx*ny,fail=0;const done=()=>{left--;tex.needsUpdate=true;need();if(left<=0&&tok==gTok){busy('');try{applyDS()}catch(e){}if(fail>=nx*ny)toast('Kaardipilti ei saadud (võrk?). Varjud töötavad ka ilma.')}};
   busy('Laen kaardipilti…');
   for(let i=0;i<nx;i++)for(let j=0;j<ny;j++){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(tok==gTok)x.drawImage(im,i*256,j*256);done()};im.onerror=()=>{fail++;done()};im.src=tileUrl(kind,Z,x0+i,y0+j)}
  }
@@ -380,6 +380,13 @@ function buildSunPath(){
  const n=mkLabel('N',22,'#fff');n.position.set(0,6,-GR*0.93);gP.add(n);
  gP.visible=$('#lp').checked;
 }
+let DS=Q.get('ds')==='0'?0:1;
+function applyDS(){const g=(typeof gGround!=='undefined'&&gGround)?gGround.children[0]:null;if(!g||!g.material||!g.material.map)return;const c=g.material.map.image;if(!c||!c.getContext||!c.width)return;const x=c.getContext('2d'),w=c.width,h=c.height;
+ if(window.__dsFor!==c){const o=document.createElement('canvas');o.width=w;o.height=h;o.getContext('2d').drawImage(c,0,0);window.__dsO=o;window.__dsFor=c}else{x.drawImage(window.__dsO,0,0)}
+ if(DS){const K=40,sw=Math.max(8,Math.round(w/K)),sh=Math.max(8,Math.round(h/K)),sm=document.createElement('canvas');sm.width=sw;sm.height=sh;const sx=sm.getContext('2d');sx.imageSmoothingEnabled=true;sx.imageSmoothingQuality='high';sx.drawImage(c,0,0,sw,sh);const S=sx.getImageData(0,0,sw,sh).data,Lm=new Float32Array(sw*sh);let T=0;for(let i=0;i<sw*sh;i++){const l=S[i*4]*.299+S[i*4+1]*.587+S[i*4+2]*.114;Lm[i]=l;T+=l}const M=T/(sw*sh),A=x.getImageData(0,0,w,h),a=A.data;
+  for(let y=0;y<h;y++){const fy=Math.min(sh-1.001,Math.max(0,(y+.5)*sh/h-.5)),y0=fy|0,ty=fy-y0;for(let X=0;X<w;X++){const fx=Math.min(sw-1.001,Math.max(0,(X+.5)*sw/w-.5)),x0=fx|0,tx=fx-x0,i0=y0*sw+x0,Lb=(Lm[i0]*(1-tx)+Lm[i0+1]*tx)*(1-ty)+(Lm[i0+sw]*(1-tx)+Lm[i0+sw+1]*tx)*ty,gn=Math.min(2.2,Math.max(.75,Math.pow(M/(Lb+3),.85))),i=(y*w+X)*4;a[i]=Math.min(255,a[i]*gn);a[i+1]=Math.min(255,a[i+1]*gn);a[i+2]=Math.min(255,a[i+2]*gn)}}
+  x.putImageData(A,0,0)}
+ g.material.map.needsUpdate=true;need()}
 function setSun(min,quiet){
  MIN=min;const s=sunPos(dateAt(min),LAT,LON);SUN=s;const up=s.alt>0;
  if(!dl)return;
@@ -515,7 +522,7 @@ function bind(){
  if(CALL!=null){$('#bcall').style.display='';$('#bcall').textContent='Call '+hm2(CALL);$('#bcall').onclick=()=>{play(false);setSun(clamp(CALL,+$('#tr').min,+$('#tr').max))}}
  if(WRAP!=null){$('#bwrap').style.display='';$('#bwrap').textContent='Wrap '+hm2(WRAP);$('#bwrap').onclick=()=>{play(false);setSun(clamp(WRAP,+$('#tr').min,+$('#tr').max))}}
  if(CALL!=null&&WRAP!=null)$('#pcw').style.display='';
- window.setCL=n=>{CL=n;for(let i=0;i<3;i++){const b=$('#cl'+i);if(b)b.classList.toggle('on',i===n)}if(dl){if(!window.__sm0)window.__sm0=dl.shadow.mapSize.x;const m=[window.__sm0,1024,512][n];dl.shadow.mapSize.set(m,m);if(dl.shadow.map){dl.shadow.map.dispose();dl.shadow.map=null}}setSun(MIN)};[0,1,2].forEach(i=>{const b=$('#cl'+i);if(b)b.onclick=()=>setCL(i)});setTimeout(()=>{if(CL)setCL(CL)},400);$('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(window.UP0!=null?window.UP0:RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(window.UP1!=null?window.UP1:SET,+$('#tr').min,+$('#tr').max))}};
+ window.setCL=n=>{CL=n;for(let i=0;i<3;i++){const b=$('#cl'+i);if(b)b.classList.toggle('on',i===n)}if(dl){if(!window.__sm0)window.__sm0=dl.shadow.mapSize.x;const m=[window.__sm0,1024,512][n];dl.shadow.mapSize.set(m,m);if(dl.shadow.map){dl.shadow.map.dispose();dl.shadow.map=null}}setSun(MIN)};[0,1,2].forEach(i=>{const b=$('#cl'+i);if(b)b.onclick=()=>setCL(i)});setTimeout(()=>{if(CL)setCL(CL)},400);{const b=$('#dsb');if(b){if(!DS){b.classList.remove('on');b.textContent='Pildi varjud: nähtaval'}b.onclick=()=>{DS=DS?0:1;b.classList.toggle('on',!!DS);b.textContent=DS?'Pildi varjud: peidetud':'Pildi varjud: nähtaval';try{applyDS()}catch(e){}}}}$('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(window.UP0!=null?window.UP0:RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(window.UP1!=null?window.UP1:SET,+$('#tr').min,+$('#tr').max))}};
  $('#date').value=DATE;$('#date').onchange=e=>{if(!e.target.value)return;play(false);DATE=e.target.value;started=false;setupTime();CMP=null;$('#cmp').innerHTML='';$('#cmpact').style.display='none'};
  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
  $('#gm').onchange=e=>setGround(e.target.value);
