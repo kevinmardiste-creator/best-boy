@@ -15,6 +15,7 @@
 <script src="firebase-config.js"></script>
 <style>
 .ro input,.ro select,.ro textarea,.ro button{pointer-events:none;opacity:.65}
+.ro2 input,.ro2 select,.ro2 textarea{pointer-events:none;opacity:.65}
 .ro [onchange*="gSetBad"],.ro [onclick*="gSetBad"],.ro [onchange*="'dn'"]{pointer-events:auto;opacity:1}
 :root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -277,9 +278,9 @@ function addReq(){const v=$('#rq').value.trim();if(!v)return;P().req.push({id:ui
 
 function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
- if(typeof er=='function'&&er()&&er()!='admin'&&tab=='proj')tab='day';
- $('#nav').innerHTML=TABS.filter(([k])=>k!='proj'||!(typeof er=='function'&&er()&&er()!='admin')).map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
- $('#app').innerHTML={day:vHome2,crew:vCrew2,gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);try{const ro=!!er()&&!shMgrV()&&(tab=='gear'||tab=='cal');$('#app').classList.toggle('ro',ro);if(ro)$('#app').insertAdjacentHTML('afterbegin','<div class="card org sub">Ainult vaatamine: sul pole selle muutmise õigust.</div>')}catch(e){}
+ if(typeof er=='function'&&er()&&((er()!='admin'&&tab=='proj')||(er()=='crew'&&tab=='crew')))tab='day';
+ $('#nav').innerHTML=TABS.filter(([k])=>(k!='proj'||!(typeof er=='function'&&er()&&er()!='admin'))&&(k!='crew'||!(typeof er=='function'&&er()=='crew'))).map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
+ $('#app').innerHTML={day:vHome2,crew:vCrew2,gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);try{const nm=!!er()&&!shMgrV(),ro=nm&&(tab=='gear'||tab=='cal'),ro2=nm&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);if(ro||ro2)$('#app').insertAdjacentHTML('afterbegin','<div class="card org sub">Ainult vaatamine: sul pole selle muutmise õigust.</div>')}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>Vaatad rollina: '+esc(tmName(TM.view))+'</span><button class="btn" onclick="TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
  tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
 
@@ -693,8 +694,9 @@ function lsImg(id,v){try{let ix=JSON.parse(localStorage.getItem('bbimgx')||'[]')
 async function imgPut(id,v,ns){IMGC[id]=v;if(!v)return;let ok=false;try{const d=await idb();await new Promise((ok,no)=>{const t=d.transaction('i','readwrite');t.objectStore('i').put(v,id);t.oncomplete=ok;t.onerror=()=>no(t.error)});ok=true}catch(e){}if(!ok)lsImg(id,v);if(!ns)imgUp(id,v)}
 async function imgGet0(id){if(IMGC[id])return IMGC[id];try{const d=await idb();return await new Promise(ok=>{const q=d.transaction('i').objectStore('i').get(id);q.onsuccess=()=>{IMGC[id]=q.result||'';ok(q.result||'')};q.onerror=()=>ok('')}).then(v=>v||lsGet(id))}catch(e){return lsGet(id)}}
 const IMN=700000,IMP={};
-async function imgUp(id,v){try{if(typeof SY=='undefined'||!SY.col||!v)return;const m=await SY.col.doc('bbi_'+id).get();if(m.exists&&m.data().len==v.length)return;const n=Math.ceil(v.length/IMN);for(let i=0;i<n;i++)await SY.col.doc('bbi_'+id+'_'+i).set({s:v.slice(i*IMN,(i+1)*IMN)});await SY.col.doc('bbi_'+id).set({n,len:v.length,ts:Date.now()})}catch(e){}}
-async function imgDown(id){if(typeof SY=='undefined'||!SY.col)return '';if(IMP[id])return IMP[id];return IMP[id]=(async()=>{try{const m=await SY.col.doc('bbi_'+id).get();if(!m.exists)return '';const P=[];for(let i=0;i<m.data().n;i++){const d=await SY.col.doc('bbi_'+id+'_'+i).get();if(!d.exists)return '';P.push(d.data().s)}const v=P.join('');if(v.length!=m.data().len)return '';await imgPut(id,v,true);return v}catch(e){return ''}finally{setTimeout(()=>{delete IMP[id]},3000)}})()}
+const imgCol=()=>(typeof TM!='undefined'&&TM.role&&SY.fs)?SY.fs.collection('cimg'):SY.col;
+async function imgUp(id,v){try{if(typeof SY=='undefined'||!SY.col||!v)return;const m=await imgCol().doc('bbi_'+id).get();if(m.exists&&m.data().len==v.length)return;const n=Math.ceil(v.length/IMN);for(let i=0;i<n;i++)await imgCol().doc('bbi_'+id+'_'+i).set({s:v.slice(i*IMN,(i+1)*IMN)});await imgCol().doc('bbi_'+id).set({n,len:v.length,ts:Date.now()})}catch(e){}}
+async function imgDown(id){if(typeof SY=='undefined'||!SY.col)return '';if(IMP[id])return IMP[id];return IMP[id]=(async()=>{try{const cols=[imgCol()];if(cols[0]!==SY.col)cols.push(SY.col);for(const col of cols){try{const m=await col.doc('bbi_'+id).get();if(!m.exists)continue;const P=[];let bad=0;for(let i=0;i<m.data().n;i++){const d=await col.doc('bbi_'+id+'_'+i).get();if(!d.exists){bad=1;break}P.push(d.data().s)}if(bad)continue;const v=P.join('');if(v.length!=m.data().len)continue;await imgPut(id,v,true);return v}catch(e){}}return ''}finally{setTimeout(()=>{delete IMP[id]},3000)}})()}
 async function imgGet(id){const v=await imgGet0(id);return v||await imgDown(id)}
 async function imgSweep(){try{for(const p of S.projects)for(const z of (p.sheets||[])){const v=await imgGet0(z.id);if(v)await imgUp(z.id,v)}}catch(e){}}
 function lsGet(id){try{const v=localStorage.getItem('bbimg_'+id)||'';if(v)IMGC[id]=v;return v}catch(e){return ''}}
@@ -893,18 +895,22 @@ async function tmAdd(){const e=($('#tme').value||'').trim().toLowerCase(),n=($('
 async function tmSet(e,ro){try{await SY.fs.collection('members').doc(e).update({role:ro})}catch(x){alert('Muutmine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 async function tmDel(e){if(!confirm('Eemaldan '+e+' meeskonnast? Tema isiklikud andmed jäävad alles.'))return;try{await SY.fs.collection('members').doc(e).delete()}catch(x){alert('Eemaldamine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 /* ---------- Ühine andmeruum (kalender, tehnika, laenutused) ---------- */
-const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0},SHC=['calendar','gear','loans','projects','flags'];
+const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0};
+let SHC=['calendar','gear','loans','projects','flags','pdays','psheets'];
 const er=()=>TM.view||TM.role,shMgrV=()=>['admin','gaffer','bestboy'].includes(er()),shMgr=()=>['admin','gaffer','bestboy'].includes(TM.role),shW=c=>(c=='loans'||c=='flags')?!!TM.role:shMgr();
 function shStop(){SH.un.forEach(f=>{try{f()}catch(e){}});SH.un=[];SH.ready=0;SH.got={};SH.last={}}
-function shStart(){shStop();SH.rem={calendar:new Map(),gear:new Map(),loans:new Map(),projects:new Map(),flags:new Map()};
- SHC.forEach(c=>SH.un.push(SY.fs.collection(c).onSnapshot({includeMetadataChanges:true},s=>{if(s.metadata.fromCache&&s.empty)return;const m=new Map();s.docs.forEach(d=>{const x=d.data();try{m.set(d.id,{id:d.id,pid:x.pid,o:x.o||0,item:JSON.parse(x.j),sig:x.j+'|'+(x.o||0)+(x.pid||'')})}catch(e){}});SH.rem[c]=m;SH.got[c]=1;if(SHC.every(k=>SH.got[k])){SH.ready=1;clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),150)}},e=>{syMsg('☁ Ühiste andmete viga ('+(e&&e.code||'?')+')')})))}
+function shStart(){shStop();SHC=['calendar','gear','loans','projects','flags','pdays','psheets'].concat(shMgr()?['pcrew']:[]);SH.rem={};SHC.forEach(c=>SH.rem[c]=new Map());
+ SHC.forEach(c=>SH.un.push(SY.fs.collection(c).onSnapshot({includeMetadataChanges:true},s=>{if(s.metadata.fromCache&&s.empty)return;const m=new Map();s.docs.forEach(d=>{const x=d.data();try{m.set(d.id,{id:d.id,pid:x.pid,o:x.o||0,item:JSON.parse(x.j),k:x.k,sig:x.j+'|'+(x.o||0)+(x.pid||'')+(x.k||'')})}catch(e){}});SH.rem[c]=m;SH.got[c]=1;if(SHC.every(k=>SH.got[k])){SH.ready=1;clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),150)}},e=>{syMsg('☁ Ühiste andmete viga ('+(e&&e.code||'?')+')')})))}
 function shLocal(){const m=new Map();
  S.cal.forEach((e,i)=>{if(!e.id)e.id=uid();m.set('calendar/'+e.id,{c:'calendar',id:e.id,d:{j:JSON.stringify(e),o:i}})});
- S.projects.forEach(p=>{m.set('projects/'+p.id,{c:'projects',id:p.id,d:{j:JSON.stringify({name:p.name,glists:p.glists||{}}),o:0}});
+ S.projects.forEach(p=>{const rv=(SH.rem.projects&&SH.rem.projects.get(p.id)||{}).item||{},hasD=Object.keys(p.dd||{}).length||(p.sheets||[]).length||Object.values(p.cd||{}).some(a=>a&&a.length),v=TM.role=='admin'?(hasD?2:rv.v):rv.v;m.set('projects/'+p.id,{c:'projects',id:p.id,d:{j:JSON.stringify({name:p.name,glists:p.glists||{},roles:p.roles||{},v}),o:0}});
+  Object.keys(p.dd||{}).forEach(d=>m.set('pdays/'+p.id+'_'+d,{c:'pdays',id:p.id+'_'+d,d:{j:JSON.stringify(p.dd[d]),pid:p.id,k:d,o:0}}));
+  if(shMgr())Object.keys(p.cd||{}).forEach(d=>{if((p.cd[d]||[]).length)m.set('pcrew/'+p.id+'_'+d,{c:'pcrew',id:p.id+'_'+d,d:{j:JSON.stringify(p.cd[d]),pid:p.id,k:d,o:0}})});
+  (p.sheets||[]).forEach((z,i)=>{if(!z.id)z.id=uid();m.set('psheets/'+p.id+'_'+z.id,{c:'psheets',id:p.id+'_'+z.id,d:{j:JSON.stringify(z),pid:p.id,o:i}})});
   (p.gear||[]).forEach((g,i)=>{if(!g.id)g.id=uid();const {bq,bad,dn,...gg}=g;m.set('gear/'+p.id+'_'+g.id,{c:'gear',id:p.id+'_'+g.id,d:{j:JSON.stringify(gg),pid:p.id,o:i}});if(bq>0||bad||dn)m.set('flags/'+p.id+'_'+g.id,{c:'flags',id:p.id+'_'+g.id,d:{j:JSON.stringify({bq,bad,dn}),pid:p.id,o:0}})});
   (p.loans||[]).forEach((l,i)=>{if(!l.id)l.id=uid();m.set('loans/'+p.id+'_'+l.id,{c:'loans',id:p.id+'_'+l.id,d:{j:JSON.stringify(l),pid:p.id,o:i}})})});
  return m}
-const shSig=d=>d.j+'|'+(d.o||0)+(d.pid||'');
+const shSig=d=>d.j+'|'+(d.o||0)+(d.pid||'')+(d.k||'');
 function shDirty(){try{if(!SH.ready)return;clearTimeout(SH.t);SH.t=setTimeout(shPush,1500)}catch(e){}}
 async function shPush(){SH.t=null;if(!SH.ready)return;if(SH.busy){SH.t=setTimeout(shPush,1500);return}SH.busy=1;let revert=0;
  try{const L=shLocal(),ops=[];
@@ -921,9 +927,11 @@ function shApply(force){try{if(!SH.ready)return;
  const R=SH.rem,empty=!R.projects.size;
  if(empty){if(shMgr()&&!SH.mig){SH.mig=1;shPush()}return}
  if(!SH.bk){SH.bk=1;syBackup('enne ühiste andmete laadimist')}
- const snap=()=>JSON.stringify([S.cal,S.projects.map(p=>[p.id,p.name,p.glists,p.gear,p.loans])]),before=snap(),byO=(x,y)=>x.o-y.o;
+ const snap=()=>JSON.stringify([S.cal,S.projects.map(p=>[p.id,p.name,p.glists,p.gear,p.loans,p.dd,p.cd,p.sheets,p.roles])]),before=snap(),byO=(x,y)=>x.o-y.o;
  S.cal=[...R.calendar.values()].sort(byO).map(x=>x.item);
  R.projects.forEach((x,id)=>{let p=S.projects.find(q=>q.id==id);if(!p){p=newP(x.item.name||'Projekt');p.id=id;S.projects.push(p)}p.name=x.item.name||p.name;p.glists=x.item.glists||{};
+  if(x.item.roles)p.roles=x.item.roles;
+  if(x.item.v>=2){const dd={};R.pdays.forEach(q=>{if(q.pid==id)dd[q.k]=q.item});p.dd=dd;p.sheets=[...R.psheets.values()].filter(q=>q.pid==id).sort(byO).map(q=>q.item);p.cd=p.cd||{};if(R.pcrew){const cd={};R.pcrew.forEach(q=>{if(q.pid==id)cd[q.k]=q.item});Object.keys(p.cd).forEach(d=>{if(!cd[d])cd[d]=[]});p.cd=cd}if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[];if(p.dd[p.date]){loadDay(p);p.loc=p.dd[p.date].loc||''}}
   p.gear=[...R.gear.values()].filter(g=>g.pid==id).sort(byO).map(g=>{const it=Object.assign({},g.item),f=R.flags.get(id+'_'+it.id);if(f)Object.assign(it,f.item);return it});p.loans=[...R.loans.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item)});
  if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));
  if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
