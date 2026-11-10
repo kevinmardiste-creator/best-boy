@@ -96,6 +96,7 @@ label.t{display:flex;align-items:center;gap:6px}
    <select id="gm" class="grow"><option value="sat">Maapind: satelliit</option><option value="ma">Maapind: Maa-ameti ortofoto</option><option value="osm">Maapind: tänavakaart</option><option value="none">Maapind: neutraalne</option></select>
    <label class="t"><input type="checkbox" id="lt" checked>Puud</label>
    <label class="t"><input type="checkbox" id="l2" checked>Katuseformid</label>
+   <label class="t"><input type="checkbox" id="lv" checked>Taimkate (Maa-amet)</label>
    <label class="t"><input type="checkbox" id="lp" checked>Päikese tee</label>
   </div>
   <div class="sub" style="margin-top:6px">Satelliidipildil on oma varjud. Simuleeritud varjud on tumedad ja läbipaistvad.</div>
@@ -361,15 +362,68 @@ function parseLod2(L){
  return {parts:P,nb};
 }
 function lodMeshes(Lo){return Lo.parts.map(q=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(q.p,3));g.setAttribute('normal',new THREE.BufferAttribute(q.n,3));g.computeBoundingSphere();const m=new THREE.Mesh(g,matL);m.castShadow=true;m.receiveShadow=true;m.frustumCulled=false;return m})}
+/* Maa-ameti taimkate realistlik (LiDAR puud, I3S punktikihid) */
+const VB={k:'https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/okas_pnt_real_2025/SceneServer/layers/0',l:'https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/leht_pnt_real_2025/SceneServer/layers/0'};
+let VEGON=Q.get('veg')!=='0',DRC=null;
+const ldScript=u=>new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=no;document.head.appendChild(e)});
+async function dracoDec(buf){
+ if(!DRC){await ldScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js');DRC=new THREE.DRACOLoader();DRC.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/')}
+ const g=await new Promise((ok,no)=>{DRC.decodeDracoFile(buf,ok,{position:'POSITION'},{position:Float32Array});setTimeout(()=>no(new Error('draco')),30000)});
+ return g.attributes.position.array;
+}
+async function fetchVegLayer(base,tag,E0,N0,R){
+ const pg={},page=i=>pg[i]||(pg[i]=(async()=>{const k='vegp:'+tag+i,c=await idbGet(k);if(c)return c;const r=await ft(base+'/nodepages/'+i+'?f=json',20000);if(!r.ok)throw new Error('I3S '+r.status);const n=(await r.json()).nodes;idbPut(k,n).catch(()=>{});return n})()),nd=async i=>(await page(Math.floor(i/64)))[i%64];
+ const leaves=[];let lvl=[0];
+ while(lvl.length){const ns=await Promise.all(lvl.map(nd));lvl=[];ns.forEach(n=>{if(!n||!inObbP(n.obb,E0,N0,R))return;if(n.children&&n.children.length)lvl.push(...n.children);else if(n.mesh)leaves.push(n)})}
+ const out=[];
+ await Promise.all(leaves.map(async n=>{
+  const rid=n.mesh.geometry.resource,k='vegn:'+tag+rid;let d=await idbGet(k);
+  if(!d){
+   const [g,z,m]=await Promise.all([base+'/nodes/'+rid+'/geometries/0',base+'/nodes/'+rid+'/attributes/f_1/0',base+'/nodes/'+rid+'/attributes/f_3/0'].map(async u=>{const r=await ft(u,40000);if(!r.ok)throw new Error('I3S '+r.status);return r.arrayBuffer()}));
+   const pos=await dracoDec(g),c=new Uint32Array(z,0,1)[0],Z=new Float64Array(z,8,c),M=new Float64Array(m,8,c),nn=Math.min(c,pos.length/3),a=new Float32Array(nn*4);
+   for(let i=0;i<nn;i++){a[i*4]=pos[i*3];a[i*4+1]=pos[i*3+1];a[i*4+2]=Z[i];a[i*4+3]=M[i]}
+   d=a;idbPut(k,d).catch(()=>{});
+  }
+  const c=n.obb.center;
+  for(let i=0;i<d.length;i+=4){const x=c[0]+d[i]-E0,y=c[1]+d[i+1]-N0;if(Math.abs(x)>R||Math.abs(y)>R)continue;out.push([x,y,d[i+2],d[i+3]])}
+ }));
+ return out;
+}
+async function fetchVeg(){
+ const [E0,N0]=L3301(LAT,LON),R=GR+5;
+ const [k,l]=await Promise.all([fetchVegLayer(VB.k,'k',E0,N0,R),fetchVegLayer(VB.l,'l',E0,N0,R)]);
+ const T=[];
+ k.forEach(t=>T.push({x:t[0],n:t[1],H:t[2],d:t[3],con:true}));l.forEach(t=>T.push({x:t[0],n:t[1],H:t[2],d:t[3],con:false}));
+ const hs=new Set();T.forEach(t=>hs.add(Math.floor(t.x/12)+','+Math.floor(t.n/12)));
+ return {T,hs};
+}
+function vegNear(V,x,n){const cx=Math.floor(x/12),cy=Math.floor(n/12);for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)if(V.hs.has((cx+i)+','+(cy+j)))return true;return false}
+function vegTrees(V){
+ const T=V.T.filter(t=>Math.abs(t.x)<=GR&&Math.abs(t.n)<=GR&&t.H>=2).slice(0,60000);
+ const CC=[0x24472b,0x2c5632,0x1f3f27],CD=[0x3b6e3a,0x4a7d3f,0x35623a],mat=new THREE.MeshLambertMaterial({color:0xffffff}),out=[],dm=new THREE.Object3D(),col=new THREE.Color(),R=rng(5);
+ [true,false].forEach(con=>{
+  const L=T.filter(t=>t.con===con);if(!L.length)return;
+  const im=new THREE.InstancedMesh(con?new THREE.ConeGeometry(1,1,7):new THREE.SphereGeometry(1,7,6),mat,L.length);
+  L.forEach((t,i)=>{const H=t.H,d=Math.min(18,Math.max(1.5,t.d||H*0.5)),c=R();dm.rotation.set(0,c*6.28,0);
+   if(con){dm.scale.set(d/2,H*0.85,d/2);dm.position.set(t.x,GH(t.x,-t.n)+H*0.15+H*0.425,-t.n)}
+   else{dm.scale.set(d/2,H*0.42,d/2);dm.position.set(t.x,GH(t.x,-t.n)+H*0.58,-t.n)}
+   dm.updateMatrix();im.setMatrixAt(i,dm.matrix);
+   const pal=con?CC:CD;col.setHex(pal[Math.floor(c*pal.length)%pal.length]);col.offsetHSL(0,0,(c-0.5)*0.05);im.setColorAt(i,col)});
+  im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;
+  im.castShadow=true;im.receiveShadow=true;im.frustumCulled=false;out.push(im)});
+ return out;
+}
+{const c=$('#lv');if(c){c.checked=VEGON;c.onchange=()=>{VEGON=c.checked;if(VEGON&&!D.veg&&inEE())loadData();else{if(!VEGON)D.veg=null;rebuild()}}}}
 {const c=$('#l2');if(c){c.checked=LODON;c.onchange=()=>{LODON=c.checked;if(LODON&&!D.lod&&inEE())loadData();else{if(!LODON)D.lod=null;rebuild()}}}}
 async function loadData(force){
  busy('Laen hooneid ja puid…');
- const lp=(LODON&&inEE())?fetchLod2().then(x=>({x}),e=>({e})):null,dp=inEE()?fetchDtm().catch(()=>null):null;
+ const lp=(LODON&&inEE())?fetchLod2().then(x=>({x}),e=>({e})):null,dp=inEE()?fetchDtm().catch(()=>null):null,vp=(VEGON&&inEE())?fetchVeg().then(x=>({x}),e=>({e})):null;
  let ok=false,err=null;
  if(inEE()){try{const r=await fetchEtak(force);D=parseEtak(r.j);ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=e}}
  if(!ok){try{const r=await fetchOvp(force);D=parseOvp(r.j);D.src='OSM';ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=err||e}}
  if(dp){TER=await dp;if(TER)applyTerrain()}
  if(ok&&D.src=='ETAK'){D.lod=null;if(lp){rebuild();busy('Laen katuseformidega hooneid…');const r=await lp;if(r.x){try{D.lod=parseLod2(r.x)}catch(e){r.e=e}}if(!D.lod)toast('3D hoonete laadimine ebaõnnestus. Kasutan lihtsustatud hooneid.')}}
+ if(ok&&vp){D.veg=null;busy('Laen taimkatet…');const r=await vp;if(r.x&&r.x.T.length)D.veg=r.x;else toast('Taimkatte laadimine ebaõnnestus. Kasutan lihtsustatud puid.')}
  if(ok)$('#dstat').textContent='';
  else{D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(err&&err.message||'võrk')+'). Vajuta "Värskenda andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
  busy('');rebuild();
@@ -393,11 +447,11 @@ function treeGrp(t){
  [tr,cr].forEach(m=>{m.castShadow=true;m.receiveShadow=true;m.userData={kind:'tree',id:t.id}});
  g.add(tr,cr);g.position.set(t.x,GH(t.x,-t.n),-t.n);g.userData={id:t.id};return g}
 function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function woodTrees(ws){
+function woodTrees(ws,skip){
  const SP=6.5,pos=[];
  ws.forEach((w,wi)=>{const P=w.pts;let x0=1e9,x1=-1e9,n0=1e9,n1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);n0=Math.min(n0,p[1]);n1=Math.max(n1,p[1])});
   const R=rng(wi*7919+13);
-  for(let x=x0;x<=x1;x+=SP)for(let n=n0;n<=n1;n+=SP){const q=[x+(R()-.5)*SP*.9,n+(R()-.5)*SP*.9];if(Math.abs(q[0])<=GR&&Math.abs(q[1])<=GR&&pip(q,P))pos.push(q)}});
+  for(let x=x0;x<=x1;x+=SP)for(let n=n0;n<=n1;n+=SP){const q=[x+(R()-.5)*SP*.9,n+(R()-.5)*SP*.9];if(Math.abs(q[0])<=GR&&Math.abs(q[1])<=GR&&pip(q,P)&&!(skip&&skip(q[0],q[1])))pos.push(q)}});
  if(!pos.length)return [];
  const MAXT=5000,st=Math.max(1,Math.ceil(pos.length/MAXT)),R2=rng(99),T=[];
  for(let i=0;i<pos.length;i+=st){const H=9+R2()*10,con=R2()<0.62;T.push({p:pos[i],H,con,d:H*(0.4+R2()*0.2)*(con?1:1.25),c:R2()})}
@@ -415,12 +469,13 @@ function woodTrees(ws){
   im.castShadow=true;im.receiveShadow=true;im.frustumCulled=false;out.push(im)});
  return out}
 function woodMesh(w){const sh=new THREE.Shape(w.pts.map(p=>new THREE.Vector2(p[0],p[1]))),m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:11,bevelEnabled:false}),matWood);m.rotation.x=-Math.PI/2;m.position.y=3;m.castShadow=true;m.receiveShadow=true;return m}
-function mkTR(){TR=[];D.trees.forEach(t=>{if(HIDE.has(t.id))return;TR.push(Object.assign({},t,TO[t.id]||{}))});MY.forEach(m=>{const p=loc(m.la,m.lo);if(Math.hypot(p[0],p[1])>650)return;TR.push({id:m.id,x:p[0],n:p[1],h:m.h,d:m.d,t:m.t||'l',src:'user'})})}
+function mkTR(){TR=[];D.trees.forEach(t=>{if(HIDE.has(t.id)||(D.veg&&vegNear(D.veg,t.x,t.n)))return;TR.push(Object.assign({},t,TO[t.id]||{}))});MY.forEach(m=>{const p=loc(m.la,m.lo);if(Math.hypot(p[0],p[1])>650)return;TR.push({id:m.id,x:p[0],n:p[1],h:m.h,d:m.d,t:m.t||'l',src:'user'})})}
 function rebuild(){
  clearG(gB);clearG(gL);clearG(gT);clearG(gW);PICK=[];bM.clear();tM.clear();mkTR();
  if(D.lod)lodMeshes(D.lod).forEach(m=>gL.add(m));
  (D.lod?[]:D.bld).forEach(b=>{const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==b.id)m.material=matBs;gB.add(m);bM.set(b.id,m);PICK.push(m)});
- woodTrees(D.woods).forEach(m=>gW.add(m));
+ woodTrees(D.woods,D.veg?((x,n)=>vegNear(D.veg,x,n)):null).forEach(m=>gW.add(m));
+ if(D.veg)vegTrees(D.veg).forEach(m=>gW.add(m));
  TR.forEach(t=>{if(Math.abs(t.x)>GR||Math.abs(t.n)>GR)return;const g=treeGrp(t);gT.add(g);tM.set(t.id,g);g.children.forEach(c=>PICK.push(c))});
  gT.visible=gW.visible=$('#lt').checked;
  const s=D.st||{},hid=HIDE.size;
