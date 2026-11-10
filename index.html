@@ -902,10 +902,10 @@ async function tmSet(e,ro){try{await SY.fs.collection('members').doc(e).update({
 async function tmDel(e){if(!confirm('Eemaldan '+e+' meeskonnast? Tema isiklikud andmed jäävad alles.'))return;try{await SY.fs.collection('members').doc(e).delete()}catch(x){alert('Eemaldamine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 /* ---------- Ühine andmeruum (kalender, tehnika, laenutused) ---------- */
 const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0};
-const tmMe=()=>(SY.email||'').toLowerCase(),tmNm=n=>String(n||'').trim().toLowerCase(),tmByName=n=>{n=tmNm(n);return n&&TM.list.find(x=>tmNm(x.name)==n)};
+const tmMe=()=>(SY.email||'').toLowerCase(),tmNm=n=>String(n||'').trim().toLowerCase(),tmSame=(a,b)=>{a=tmNm(a);b=tmNm(b);if(!a||!b)return false;if(a==b)return true;const x=a.split(/\s+/),y=b.split(/\s+/);return x.length>1&&y.length>1&&x[0]==y[0]&&x[x.length-1]==y[y.length-1]},tmByName=n=>tmNm(n)&&TM.list.find(x=>tmSame(x.name,n));
 function tsL(p){const out=[],me=tmMe();Object.keys(p.cd||{}).forEach(d=>(p.cd[d]||[]).forEach(c=>{if(!c||!c.id)return;const mb=tmByName(c.name);if(!mb)return;if(!shMgr()&&mb.email!=me)return;out.push({k:d,e:mb.email,c})}));return out}
 function addMine(){const p=P(),mb=TM.list.find(x=>x.email==tmMe());if(!mb||!mb.name)return;p.crew.push({id:uid(),name:mb.name,role:ROLES[3]||'',call:p.call||'',wrap:p.wrap||'',act:'',s:1});save();r()}
-function vMine(p){const mb=TM.list.find(x=>x.email==tmMe())||{},nm=tmNm(mb.name),mine=L=>(L||[]).filter(c=>c&&tmNm(c.name)==nm);
+function vMine(p){const mb=TM.list.find(x=>x.email==tmMe())||{},nm=tmNm(mb.name),mine=L=>(L||[]).filter(c=>c&&tmSame(c.name,mb.name));
  if(!nm)return dayBar(p)+'<div class="card org">Sinu nime pole meeskonna nimekirjas. Palu adminil lisada sinu nimi, siis seotakse töötunnid sinuga.</div>';
  const c=mine(p.crew)[0],ym=p.date.slice(0,7),ds=Object.keys(p.cd||{}).filter(d=>mine(p.cd[d]).length).sort().reverse(),mm=ds.filter(d=>d.slice(0,7)==ym),tot=mm.reduce((a,d)=>a+mine(p.cd[d]).reduce((b,x)=>b+dur(x),0),0),
  card=c?`<div class="card space-y-2"><div class="flex justify-between items-center"><b class="text-lg">${esc(c.name)}</b><div class="text-2xl font-extrabold tabular-nums">${fm(dur(c))}</div></div><div class="grid grid-cols-3 gap-2">${tchip(c.id,'call','Call',c.call,'')}${tchip(c.id,'wrap','Wrap (plaan)',c.wrap,'')}${tchip(c.id,'act','Tegelik wrap',c.act,'')}</div></div>`:`<div class="card space-y-2"><div class="sub">Sellel päeval pole sinu tunde.</div><button class="btn p w-full" onclick="addMine()">＋ Lisa oma tunnid sellele päevale</button></div>`;
@@ -951,6 +951,7 @@ function shApply(force){try{if(!SH.ready)return;
  if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));
  if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
  SH.last={};SHC.forEach(c=>R[c].forEach((x,id)=>SH.last[c+'/'+id]=x.sig));
+ if(!SH.k1){SH.k1=1;shDirty()}
  if(snap()!==before){save();r()}}catch(e){}}
 function fbLogin(){try{const a=firebase.auth(),pr=new firebase.auth.GoogleAuthProvider();a.signInWithPopup(pr).catch(e=>{if(e&&/popup|operation-not-supported|cancelled/.test(e.code||''))a.signInWithRedirect(pr);else syMsg('☁ Sisselogimine ebaõnnestus ('+(e&&e.code||'?')+')')})}catch(e){}}
 function syClick(){if(SY.needLogin){fbLogin();return}if(SY.col){SY.ts=Date.now();syPush()}}
