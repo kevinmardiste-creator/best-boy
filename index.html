@@ -528,7 +528,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
   :wet.length?['#33230a','#fcd34d','🌧','Vihm tõenäoline '+hh(wet)+' ('+Math.max(...wet.map(rp))+'%, '+f1(Math.max(...wet.map(h=>+h.extended?.rainValue||0)))+' mm) · '+WX['Vihm']]
   :soon?['#33230a','#fcd34d','🌧',esc(mc.summary60||'Vihm lähedal')+' (tunni tõenäosus '+hp+'%)']
   :gustH.length?['#33230a','#fcd34d','💨','Puhangud 11+ m/s '+hh(gustH)]
-  :light.length?['#16222f','#cbd5e1','🌦','Üksik tibu võimalik '+hh(light)+' ('+f1(Math.max(...light.map(h=>+h.extended.rainValue)))+' mm, tõenäosus '+Math.max(...light.map(rp))+'%) · sadu pole oodata'+(inw?'':'')]
+  :light.length?['#16222f','#cbd5e1','🌦','Kerge sadu võimalik '+hh(light)+' ('+f1(Math.max(...light.map(h=>+h.extended.rainValue)))+' mm, tõenäosus '+Math.max(...light.map(rp))+'%)']
   :['#16222f','#cbd5e1','ⓘ','Prognoos ei näita sadu'+(inw?' call–wrap ajal':'')+'. Lühiajalise vihma jaoks vaata radarit.'],
  d=W.at&&new Date(W.at);
  e.innerHTML=`<div class="wx ${cls} ${warn?'warn':''}">
