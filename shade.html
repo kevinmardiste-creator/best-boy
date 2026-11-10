@@ -89,6 +89,7 @@ label.t{display:flex;align-items:center;gap:6px}
   <div class="row" style="margin-top:8px">
    <select id="gm" class="grow"><option value="sat">Maapind: satelliit</option><option value="ma">Maapind: Maa-ameti ortofoto</option><option value="osm">Maapind: tänavakaart</option><option value="none">Maapind: neutraalne</option></select>
    <label class="t"><input type="checkbox" id="lt" checked>Puud</label>
+   <label class="t"><input type="checkbox" id="l2" checked>Katuseformid</label>
    <label class="t"><input type="checkbox" id="lp" checked>Päikese tee</label>
   </div>
   <div class="sub" style="margin-top:6px">Satelliidipildil on oma varjud. Simuleeritud varjud on tumedad ja läbipaistvad.</div>
@@ -176,7 +177,7 @@ function unloc(x,n){const N=2**Z*256,px=CX+x/MPP,py=CY-n/MPP;return [Math.atan(M
 
 /* ---------- Stseen ---------- */
 const cv=$('#cv'),stage=$('#stage');
-let renderer,scene,camera,dl,hemi,gGround,gB,gT,gW,gP,sunBall,shadowMat,gridH;
+let renderer,scene,camera,dl,hemi,gGround,gB,gL,gT,gW,gP,sunBall,shadowMat,gridH;
 const cam={az:0,pol:1.0,dist:480,tgt:null};
 let dirty=true,GR=420;
 function initGL(){
@@ -188,8 +189,8 @@ function initGL(){
  dl=new THREE.DirectionalLight(0xfff1d6,1);dl.castShadow=true;
  const big=renderer.capabilities.maxTextureSize>=8192?4096:2048;dl.shadow.mapSize.set(big,big);
  dl.shadow.bias=-0.0004;dl.shadow.normalBias=0.25;scene.add(dl,dl.target);
- gGround=new THREE.Group();gB=new THREE.Group();gT=new THREE.Group();gW=new THREE.Group();gP=new THREE.Group();
- scene.add(gGround,gB,gT,gW,gP);
+ gGround=new THREE.Group();gB=new THREE.Group();gL=new THREE.Group();gT=new THREE.Group();gW=new THREE.Group();gP=new THREE.Group();
+ scene.add(gGround,gB,gL,gT,gW,gP);
  sunBall=new THREE.Mesh(new THREE.SphereGeometry(7,16,12),new THREE.MeshBasicMaterial({color:0xffd54a}));scene.add(sunBall);
  resize();new ResizeObserver(resize).observe(stage);addEventListener('resize',resize);
  (function loop(){requestAnimationFrame(loop);if(dirty){dirty=false;renderer.render(scene,camera)}})();
@@ -306,16 +307,53 @@ function parseEtak(j){
  out.st={b:out.bld.length,g:out.bld.filter(b=>b.guessed).length,t:out.trees.length,w:out.woods.length};
  return out;
 }
+/* ---------- Maa- ja Ruumiamet 3D hooned LOD2 (I3S SceneServer, katuseformid) ---------- */
+const LB='https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/Hooned_LOD2/SceneServer/layers/0';
+const LGE=Math.sqrt(2/298.257222101-1/298.257222101**2),lgm=p=>Math.cos(p)/Math.sqrt(1-LGE*LGE*Math.sin(p)**2),lgt=p=>Math.tan(Math.PI/4-p/2)/Math.pow((1-LGE*Math.sin(p))/(1+LGE*Math.sin(p)),LGE/2);
+const LG1=59.33333333333333*RAD,LG2=58*RAD,LG0=57.51755393056*RAD,LGn=(Math.log(lgm(LG1))-Math.log(lgm(LG2)))/(Math.log(lgt(LG1))-Math.log(lgt(LG2))),LGF=lgm(LG1)/(LGn*Math.pow(lgt(LG1),LGn)),LGr0=6378137*LGF*Math.pow(lgt(LG0),LGn);
+const L3301=(lat,lon)=>{const r=6378137*LGF*Math.pow(lgt(lat*RAD),LGn),th=LGn*(lon*RAD-24*RAD);return [500000+r*Math.sin(th),6375000+LGr0-r*Math.cos(th)]};
+let LODON=Q.get('lod')!=='0';
+const matL=new THREE.MeshLambertMaterial({color:0xd8d0c0,side:THREE.DoubleSide});
+function inObbP(o,x,y,p){const [qx,qy,qz,qw]=o.quaternion,dx=x-o.center[0],dy=y-o.center[1],lx=(1-2*(qy*qy+qz*qz))*dx+2*(qx*qy+qz*qw)*dy,ly=2*(qx*qy-qz*qw)*dx+(1-2*(qx*qx+qz*qz))*dy;return Math.abs(lx)<=o.halfSize[0]+p&&Math.abs(ly)<=o.halfSize[1]+p}
+async function fetchLod2(){
+ const [E0,N0]=L3301(LAT,LON),R=GR+60,key='lod2:'+E0.toFixed(0)+','+N0.toFixed(0)+','+Math.round(R);
+ const c=await idbGet(key);if(c&&c.v==2)return c;
+ const pg={},page=i=>pg[i]||(pg[i]=ft(LB+'/nodepages/'+i+'?f=json',15000).then(r=>{if(!r.ok)throw new Error('I3S '+r.status);return r.json()}).then(j=>j.nodes)),nd=async i=>(await page(Math.floor(i/64)))[i%64];
+ const leaves=[],q=[0];
+ while(q.length){const n=await nd(q.shift());if(!n||!inObbP(n.obb,E0,N0,R))continue;if(n.children&&n.children.length)n.children.forEach(x=>q.push(x));else if(n.mesh)leaves.push(n)}
+ const parts=await Promise.all(leaves.map(async n=>{const r=await ft(LB+'/nodes/'+n.mesh.geometry.resource+'/geometries/0',40000);if(!r.ok)throw new Error('I3S '+r.status);return {c:n.obb.center,b:await r.arrayBuffer()}}));
+ const out={v:2,E0,N0,R,parts};idbPut(key,out).catch(()=>{});return out;
+}
+function parseLod2(L){
+ const lim=GR+30,P=[];let nb=0,zs=[];
+ L.parts.forEach(pt=>{
+  const b=pt.b,dv=new DataView(b),vc=dv.getUint32(0,true),fc=dv.getUint32(4,true);
+  const pos=new Float32Array(b,8,vc*3),nor=new Float32Array(b,8+vc*12,vc*3),fr=new Uint32Array(b,8+vc*24+vc*8+vc*4+fc*8,fc*2);
+  const keep=[];let nv=0;
+  for(let k=0;k<fc;k++){const a=fr[2*k]*3,e=fr[2*k+1]*3+3;let sx=0,sy=0,m=0;for(let i=a;i<e;i+=3){sx+=pos[i*3];sy+=pos[i*3+1];m++}
+   const cx=pt.c[0]+sx/m-L.E0,cy=pt.c[1]+sy/m-L.N0;if(Math.hypot(cx,cy)>lim)continue;keep.push([a,e]);nv+=e-a;nb++}
+  if(!nv)return;
+  const p=new Float32Array(nv*3),nn=new Float32Array(nv*3);let o=0;
+  keep.forEach(([a,e])=>{for(let i=a;i<e;i++,o++){p[o*3]=pt.c[0]+pos[i*3]-L.E0;p[o*3+1]=pt.c[2]+pos[i*3+2];p[o*3+2]=-(pt.c[1]+pos[i*3+1]-L.N0);nn[o*3]=nor[i*3];nn[o*3+1]=nor[i*3+2];nn[o*3+2]=-nor[i*3+1];if(Math.hypot(p[o*3],p[o*3+2])<70)zs.push(p[o*3+1])}});
+  P.push({p,n:nn});
+ });
+ let zr=0;if(zs.length){zs.sort((a,b)=>a-b);zr=zs[Math.floor(zs.length*0.02)]}else if(P.length){zr=Infinity;P.forEach(q=>{for(let i=1;i<q.p.length;i+=3)zr=Math.min(zr,q.p[i])})}
+ P.forEach(q=>{for(let i=1;i<q.p.length;i+=3)q.p[i]-=zr});
+ return {parts:P,nb};
+}
+function lodMeshes(Lo){return Lo.parts.map(q=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(q.p,3));g.setAttribute('normal',new THREE.BufferAttribute(q.n,3));g.computeBoundingSphere();const m=new THREE.Mesh(g,matL);m.castShadow=true;m.receiveShadow=true;m.frustumCulled=false;return m})}
+{const c=$('#l2');if(c){c.checked=LODON;c.onchange=()=>{LODON=c.checked;if(LODON&&!D.lod&&inEE())loadData();else{if(!LODON)D.lod=null;rebuild()}}}}
 async function loadData(force){
  busy('Laen hooneid ja puid…');
  let ok=false,err=null;
  if(inEE()){try{const r=await fetchEtak(force);D=parseEtak(r.j);ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=e}}
  if(!ok){try{const r=await fetchOvp(force);D=parseOvp(r.j);D.src='OSM';ok=true;if(r.stale)toast('Värskendamine ebaõnnestus. Kasutan salvestatud andmeid.')}catch(e){err=err||e}}
+ if(ok&&D.src=='ETAK'){D.lod=null;if(LODON){busy('Laen 3D hooneid…');try{D.lod=parseLod2(await fetchLod2())}catch(e){toast('3D hoonete laadimine ebaõnnestus. Kasutan lihtsustatud hooneid.')}}}
  if(ok)$('#dstat').textContent='';
  else{D={bld:[],trees:[],woods:[],st:{}};$('#dstat').textContent='Hoonete ja puude andmeid ei saadud ('+(err&&err.message||'võrk')+'). Vajuta "Värskenda andmed", kui levi on olemas. Puid saad lisada ka käsitsi.'}
  busy('');rebuild();
 }
-function statTxt(){const s=D.st||{};return `${D.src=='ETAK'?'Maa-amet':(D.src||'OSM')}: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`}
+function statTxt(){const s=D.st||{};if(D.lod)return `Maa-amet 3D: ${D.lod.nb} hoonet katuseformidega (LOD2), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`;return `${D.src=='ETAK'?'Maa-amet':(D.src||'OSM')}: ${s.b||0} hoonet (${s.g||0} oletatud kõrgusega 9 m), ${s.t||0} puud, ${s.w||0} metsa/võsa ala. Sinu puid: ${MY.length}.`}
 
 /* ---------- Mudelid ---------- */
 let PICK=[],SEL=null;const bM=new Map(),tM=new Map();
@@ -358,8 +396,9 @@ function woodTrees(ws){
 function woodMesh(w){const sh=new THREE.Shape(w.pts.map(p=>new THREE.Vector2(p[0],p[1]))),m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:11,bevelEnabled:false}),matWood);m.rotation.x=-Math.PI/2;m.position.y=3;m.castShadow=true;m.receiveShadow=true;return m}
 function mkTR(){TR=[];D.trees.forEach(t=>{if(HIDE.has(t.id))return;TR.push(Object.assign({},t,TO[t.id]||{}))});MY.forEach(m=>{const p=loc(m.la,m.lo);if(Math.hypot(p[0],p[1])>650)return;TR.push({id:m.id,x:p[0],n:p[1],h:m.h,d:m.d,t:m.t||'l',src:'user'})})}
 function rebuild(){
- clearG(gB);clearG(gT);clearG(gW);PICK=[];bM.clear();tM.clear();mkTR();
- D.bld.forEach(b=>{const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==b.id)m.material=matBs;gB.add(m);bM.set(b.id,m);PICK.push(m)});
+ clearG(gB);clearG(gL);clearG(gT);clearG(gW);PICK=[];bM.clear();tM.clear();mkTR();
+ if(D.lod)lodMeshes(D.lod).forEach(m=>gL.add(m));
+ (D.lod?[]:D.bld).forEach(b=>{const m=bldMesh(b);if(SEL&&SEL.kind=='bld'&&SEL.id==b.id)m.material=matBs;gB.add(m);bM.set(b.id,m);PICK.push(m)});
  woodTrees(D.woods).forEach(m=>gW.add(m));
  TR.forEach(t=>{const g=treeGrp(t);gT.add(g);tM.set(t.id,g);g.children.forEach(c=>PICK.push(c))});
  gT.visible=gW.visible=$('#lt').checked;
