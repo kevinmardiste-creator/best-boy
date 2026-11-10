@@ -226,7 +226,7 @@ function setGround(kind){
   busy('Laen kaardipilti…');
   for(let i=0;i<nx;i++)for(let j=0;j<ny;j++){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(tok==gTok)x.drawImage(im,i*256,j*256);done()};im.onerror=()=>{fail++;done()};im.src=tileUrl(kind,Z,x0+i,y0+j)}
  }
- const sm=new THREE.ShadowMaterial({opacity:0.55,color:0x050a18});shadowMat=sm;
+ if(gm)gm.castShadow=true;const sm=new THREE.ShadowMaterial({opacity:0.55,color:0x050a18});shadowMat=sm;
  const sp=plane(sm);sp.position.y=0.08;sp.receiveShadow=true;gGround.add(sp);
  if(TER)applyTerrain();
  const sc=dl.shadow.camera,R=Math.max(W,H)*0.72;sc.left=-R;sc.right=R;sc.top=R;sc.bottom=-R;sc.near=100;sc.far=3200;sc.updateProjectionMatrix();
