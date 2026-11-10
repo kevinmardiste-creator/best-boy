@@ -75,7 +75,7 @@ label.t{display:flex;align-items:center;gap:6px}
    <button class="btn" id="tm">−15</button><button class="btn" id="tp">+15</button>
    <button class="btn p" id="play">▶ Esita</button>
    <button class="btn" id="bcall" style="display:none">Call</button><button class="btn" id="bwrap" style="display:none">Wrap</button>
-   <button class="btn" id="brise">Tõus</button><button class="btn" id="bset">Loojang</button>
+   <button class="btn" id="brise">Tõus</button><button class="btn" id="bset">Loojang</button><button class="btn on" id="cl0">☀ Selge</button><button class="btn" id="cl1">⛅ Poolpilves</button><button class="btn" id="cl2">☁ Pilves</button>
   </div>
   <div class="sub" id="sinfo" style="margin-top:6px"></div>
  </section>
@@ -143,7 +143,7 @@ let LAT=parseFloat(Q.get('lat')),LON=parseFloat(Q.get('lon'));
 let DATE=/^\d{4}-\d\d-\d\d$/.test(Q.get('date')||'')?Q.get('date'):isoToday();
 let NAME=Q.get('n')||Q.get('q')||'';
 const CALL=tmin(Q.get('call')),WRAP=tmin(Q.get('wrap'));
-let MIN=720,RISE=null,SET=null,SUN={az:0,alt:0},started=false;
+let CL=Math.min(2,Math.max(0,parseInt(Q.get('cl'))||0)),MIN=720,RISE=null,SET=null,SUN={az:0,alt:0},started=false;
 const toast=(m,ms)=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',ms||2600)};
 const ft=(u,ms,o)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||10000);return fetch(u,Object.assign({signal:c.signal},o||{})).finally(()=>clearTimeout(t))};
 
@@ -385,9 +385,10 @@ function setSun(min,quiet){
  if(!dl)return;
  dl.position.copy(sdir(s,1)).multiplyScalar(1500);dl.target.position.set(0,0,0);dl.target.updateMatrixWorld();
  const ad=s.alt/RAD,kx=Math.min(1,Math.max(0,(ad+2)/7)),k=kx*kx*(3-2*kx);
- dl.intensity=k;hemi.intensity=0.3+0.32*k;
- if(shadowMat)shadowMat.opacity=0.55*k;
- {const g=(typeof gGround!=='undefined'&&gGround)?gGround.children[0]:null;if(g&&g.material&&g.material.color){const f=0.28+0.72*k;g.material.color.setRGB(f*(0.86+0.14*f),f*(0.92+0.08*f),f)}}
+ const CF=[1,.5,.1][CL],CH=[0,.14,.34][CL],CO=[1,.55,.22][CL];
+ dl.intensity=k*CF;hemi.intensity=0.3+(0.32+CH)*k;
+ if(shadowMat)shadowMat.opacity=0.55*k*CO;
+ {const g=(typeof gGround!=='undefined'&&gGround)?gGround.children[0]:null;if(g&&g.material&&g.material.color){const f=(0.28+0.72*k)*[1,.95,.9][CL];g.material.color.setRGB(f*(0.86+0.14*f),f*(0.92+0.08*f),f)}}
  sunBall.position.copy(sdir(s,RS));sunBall.visible=up;
  need();if(quiet)return;
  $('#tbig').textContent=hm2(min);$('#tr').value=min;
@@ -514,7 +515,7 @@ function bind(){
  if(CALL!=null){$('#bcall').style.display='';$('#bcall').textContent='Call '+hm2(CALL);$('#bcall').onclick=()=>{play(false);setSun(clamp(CALL,+$('#tr').min,+$('#tr').max))}}
  if(WRAP!=null){$('#bwrap').style.display='';$('#bwrap').textContent='Wrap '+hm2(WRAP);$('#bwrap').onclick=()=>{play(false);setSun(clamp(WRAP,+$('#tr').min,+$('#tr').max))}}
  if(CALL!=null&&WRAP!=null)$('#pcw').style.display='';
- $('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(window.UP0!=null?window.UP0:RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(window.UP1!=null?window.UP1:SET,+$('#tr').min,+$('#tr').max))}};
+ window.setCL=n=>{CL=n;for(let i=0;i<3;i++){const b=$('#cl'+i);if(b)b.classList.toggle('on',i===n)}if(dl){if(!window.__sm0)window.__sm0=dl.shadow.mapSize.x;const m=[window.__sm0,1024,512][n];dl.shadow.mapSize.set(m,m);if(dl.shadow.map){dl.shadow.map.dispose();dl.shadow.map=null}}setSun(MIN)};[0,1,2].forEach(i=>{const b=$('#cl'+i);if(b)b.onclick=()=>setCL(i)});setTimeout(()=>{if(CL)setCL(CL)},400);$('#brise').onclick=()=>{if(RISE!=null){play(false);setSun(clamp(window.UP0!=null?window.UP0:RISE,+$('#tr').min,+$('#tr').max))}};$('#bset').onclick=()=>{if(SET!=null){play(false);setSun(clamp(window.UP1!=null?window.UP1:SET,+$('#tr').min,+$('#tr').max))}};
  $('#date').value=DATE;$('#date').onchange=e=>{if(!e.target.value)return;play(false);DATE=e.target.value;started=false;setupTime();CMP=null;$('#cmp').innerHTML='';$('#cmpact').style.display='none'};
  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
  $('#gm').onchange=e=>setGround(e.target.value);
