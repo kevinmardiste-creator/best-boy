@@ -77,6 +77,7 @@ label.t{display:flex;align-items:center;gap:6px}
  <section class="card">
   <div class="row"><input id="sq" class="grow" placeholder="Otsi asukohta (aadress, koht, Mapsi link)"><button class="btn" id="sgo">🔍</button></div>
   <div class="row"><input type="date" id="date" class="grow"><div id="tbig">12:00</div></div>
+  <div class="sub" id="dlab" style="margin-top:4px"></div>
   <input type="range" id="tr" step="5" style="margin:10px 0 4px">
   <div class="row">
    <button class="btn" id="tm">−15</button><button class="btn" id="tp">+15</button>
@@ -515,8 +516,9 @@ function setSun(min,quiet){
  $('#cs').parentNode.style.transform='rotate('+(cam.az/RAD)+'deg)';
  $('#sinfo').textContent=RISE==null?'Päikest ei ole sel päeval':`Päikesetõus ${hm(RISE)} · loojang ${hm(SET)} · päikese kõrgus ${Math.round(s.alt/RAD)}° · suund ${Math.round(s.az/RAD)}° ${windOf(s.az)}`;
 }
+function dlab(){const [y,m,d]=DATE.split('-').map(Number),e=$('#dlab');if(!e)return;const off=Math.round(tzOff(dateAt(720).getTime())/60000);e.textContent=new Intl.DateTimeFormat('et-EE',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)))+' · '+(off>=180?'suveaeg (UTC+3)':'talveaeg (UTC+2)')}
 function setupTime(){
- calcRS();let a0=null,a1=null;for(let q=0;q<1440;q++){if(sunPos(dateAt(q),LAT,LON).alt>0.2*RAD){if(a0==null)a0=q;a1=q}}window.UP0=a0;window.UP1=a1;const lo=a0==null?0:Math.max(0,a0-45),hi=a0==null?1439:Math.min(1439,a1+45),tr=$('#tr');tr.min=lo;tr.max=hi;
+ try{dlab()}catch(e){}calcRS();let a0=null,a1=null;for(let q=0;q<1440;q++){if(sunPos(dateAt(q),LAT,LON).alt>0.2*RAD){if(a0==null)a0=q;a1=q}}window.UP0=a0;window.UP1=a1;const lo=a0==null?0:Math.max(0,a0-45),hi=a0==null?1439:Math.min(1439,a1+45),tr=$('#tr');tr.min=lo;tr.max=hi;
  let m=MIN;
  if(!started){const n=tzP(Date.now()),nm=n.hour*60+n.minute;
   if(DATE==isoToday()&&RISE!=null&&nm>=RISE&&nm<=SET)m=nm;else if(CALL!=null&&RISE!=null&&CALL>=RISE&&CALL<=SET)m=CALL;else m=RISE!=null?Math.round((RISE+SET)/2/5)*5:720}
