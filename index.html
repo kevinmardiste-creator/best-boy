@@ -852,6 +852,26 @@ async function initSync(){try{
  firebase.initializeApp(FB_CONFIG);SY.fs=firebase.firestore();
  firebase.auth().onAuthStateChanged(async u=>{if(!u){SY.col=null;SY.ready=0;SY.needLogin=1;syMsg('☁ Logi Google\'iga sisse (puuduta siia)');loginGate(1);return}SY.needLogin=0;loginGate(0);SY.uid=u.uid;SY.email=u.email||'';SY.col=SY.fs.collection('users/'+u.uid+'/bb');tmStart();await syStart()})
 }catch(e){syMsg('☁ Sünkroon ei käivitunud')}}
+/* ---------- 24h kellaajad ja pp.kk.aaaa kuupäevad (sõltumatult brauseri/USA lokaadist) ---------- */
+(()=>{
+ const hmN=v=>{const g=String(v||'').replace(/[^0-9]/g,'');if(!g)return '';let h,m;if(g.length<=2){h=+g;m=0}else{h=+g.slice(0,g.length-2);m=+g.slice(-2)}return(h>23||m>59)?null:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')};
+ const fmtD=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?m[3]+'.'+m[2]+'.'+m[1]:(v||'')};
+ const parseD=t=>{const m=String(t).trim().match(/^(\d{1,2})[.\/\-\s](\d{1,2})(?:[.\/\-\s](\d{2,4}))?$/);if(!m)return null;let y=m[3]?+m[3]:new Date().getFullYear();if(y<100)y+=2000;const mo=+m[2],d=+m[1],dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCMonth()!=mo-1||dt.getUTCDate()!=d)return null;return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0')};
+ const desc=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+ function fix(el){
+  if(el._fx)return;
+  if(el.type=='time'){el._fx=1;el.type='text';el.setAttribute('inputmode','numeric');el.maxLength=5;el.placeholder='TT:MM';el.classList.add('tm24');return}
+  if(el.type=='date'){el._fx=1;const iso=el.value||el.getAttribute('value')||'';el.type='text';el.setAttribute('inputmode','numeric');el.maxLength=10;el.placeholder='pp.kk.aaaa';el.classList.add('dt24');el._iso=iso;
+   Object.defineProperty(el,'value',{configurable:true,get(){return el._iso||''},set(v){el._iso=v||'';desc.set.call(el,fmtD(el._iso))}});desc.set.call(el,fmtD(iso))}
+ }
+ const scan=root=>{if(root.querySelectorAll)root.querySelectorAll('input[type=time],input[type=date]').forEach(fix)};
+ document.addEventListener('change',e=>{const el=e.target;if(!el||!el.classList)return;
+  if(el.classList.contains('tm24')){const v=hmN(el.value);el.value=v===null?'':v}
+  else if(el.classList.contains('dt24')){const t=desc.get.call(el),iso=t.trim()?parseD(t):'';if(iso===null){desc.set.call(el,fmtD(el._iso));e.stopImmediatePropagation();alert('Kuupäev: pp.kk.aaaa');return}el._iso=iso;desc.set.call(el,fmtD(iso))}
+ },true);
+ new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType==1){if(n.matches&&n.matches('input[type=time],input[type=date]'))fix(n);scan(n)}}))).observe(document.documentElement,{childList:true,subtree:true});
+ scan(document);
+})();
 /* ---------- Meeskond (rollid) ---------- */
 const TM={list:[],role:'',ok:0,err:'',off:null},TMADMIN='kevinmardiste@gmail.com',TMROLES=[['admin','Admin'],['gaffer','Gaffer'],['bestboy','Best boy'],['crew','Valgustaja']];
 function tmName(v){const x=TMROLES.find(z=>z[0]==v);return x?x[1]:(v||'')}
