@@ -500,7 +500,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  const c=W.mc?.currentConditions||{},mc=W.mc?.minuteCastForecast||{},H=W.hr?.hourlyForecast||[],rp=h=>parseInt(h.extended?.rainProbability)||0,a=tm(p.call),b0=tm(p.wrap),b=b0<=a?b0+1440:b0,
  inW=h=>{const dd=Math.round((Date.parse(h.date.slice(0,10))-Date.parse(p.date))/864e5),t=dd*1440+tm(h.date.slice(11,16));return t>=a&&t<=b},
  win=H.filter(inW),inw=win.length>0,rows=H.slice(0,12),wr=inw?win:rows,
- wet=wr.filter(h=>rp(h)>=50||h.extended?.rainValue>0),gustH=wr.filter(h=>h.extended?.gustsValue>=40),
+ wet=wr.filter(h=>rp(h)>=50||h.extended?.rainValue>=0.3),light=wr.filter(h=>h.extended?.rainValue>0&&!(rp(h)>=50||h.extended?.rainValue>=0.3)),gustH=wr.filter(h=>h.extended?.gustsValue>=40),
  real=x=>x.precipitationType&&!/^(none|null|0)$/i.test(String(x.precipitationType))&&!(x.dbz!=null&&x.dbz<=0),mcRain=(mc.minutes||[]).filter(real).length>=2,hp=H[0]?rp(H[0]):0,soon=mcRain&&hp>=20,alerts=(W.mc?.alerts||[]).length,warn0=wet.length||gustH.length||soon||alerts,
  hh=l=>l.length>1?l[0].date.slice(11,16)+'–'+l[l.length-1].date.slice(11,16):l[0].date.slice(11,16),
  tNow=(()=>{const v=parseFloat(String(c.temperature||'').replace(',','.'));return isFinite(v)?v:(H[0]?+H[0].temperatureValue:null)})(),
@@ -511,9 +511,10 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  cls=alerts||wet.length?'rain':/vihm|sadu|tibu/i.test(ph)?'rain':night?'night':/päike|selge/i.test(ph)?'sun':'cloud',
  tile=(l,v,u,w,dec)=>{const ok=v!=null&&isFinite(v);return `<div class="wxk ${w?'wxw':''}"><small>${l}</small><b>${ok?(dec?f1(v):Math.round(v)):'–'}</b>${ok?`<i>${u}</i>`:''}</div>`},
  verdict=alerts?['#7f1d1d','#fecaca','⛔','Ilmahoiatus: '+esc(JSON.stringify(W.mc.alerts[0]).slice(0,110))]
-  :wet.length?['#33230a','#fcd34d','🌧','Vihm tõenäoline '+hh(wet)+' · '+WX['Vihm']]
+  :wet.length?['#33230a','#fcd34d','🌧','Vihm tõenäoline '+hh(wet)+' ('+Math.max(...wet.map(rp))+'%, '+f1(Math.max(...wet.map(h=>+h.extended?.rainValue||0)))+' mm) · '+WX['Vihm']]
   :soon?['#33230a','#fcd34d','🌧',esc(mc.summary60||'Vihm lähedal')+' (tunni tõenäosus '+hp+'%)']
   :gustH.length?['#33230a','#fcd34d','💨','Puhangud 11+ m/s '+hh(gustH)]
+  :light.length?['#16222f','#cbd5e1','🌦','Üksik tibu võimalik '+hh(light)+' ('+f1(Math.max(...light.map(h=>+h.extended.rainValue)))+' mm, tõenäosus '+Math.max(...light.map(rp))+'%) · sadu pole oodata'+(inw?'':'')]
   :['#16222f','#cbd5e1','ⓘ','Prognoos ei näita sadu'+(inw?' call–wrap ajal':'')+'. Lühiajalise vihma jaoks vaata radarit.'],
  d=W.at&&new Date(W.at);
  e.innerHTML=`<div class="wx ${cls} ${warn?'warn':''}">
