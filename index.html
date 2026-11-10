@@ -279,8 +279,8 @@ function addReq(){const v=$('#rq').value.trim();if(!v)return;P().req.push({id:ui
 
 function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
- if(typeof er=='function'&&er()&&(er()!='admin'&&tab=='proj'))tab='day';
- $('#nav').innerHTML=TABS.filter(([k])=>(k!='proj'||!(typeof er=='function'&&er()&&er()!='admin'))&&true).map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
+ if(typeof er=='function'&&er()&&er()!='admin'&&['proj','gear','loan'].includes(tab))tab='day';
+ $('#nav').innerHTML=TABS.filter(([k])=>(!['proj','gear','loan'].includes(k)||!(typeof er=='function'&&er()&&er()!='admin'))).map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
  $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&er()=='crew'?vMine:vCrew2),gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);try{const nm=!!er()&&!shMgrV(),ro=nm&&(tab=='gear'||tab=='cal'),ro2=nm&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);if(ro||ro2)$('#app').insertAdjacentHTML('afterbegin','<div class="card org sub">Ainult vaatamine: sul pole selle muutmise õigust.</div>')}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>Vaatad rollina: '+esc(tmName(TM.view))+'</span><button class="btn" onclick="TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
  tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
