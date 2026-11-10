@@ -13,7 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
-.rdr .rs{display:flex;gap:.45rem;padding:.55rem .6rem;background:#16202e}.rdr .rs input{flex:1;min-width:0;border-radius:.7rem}.rdr .rs button{padding:0 .8rem;border-radius:.7rem;background:#334155;color:#e2e8f0;font-size:1rem}
+.rdr .rt{top:3.7rem!important}.rdr .rs{display:flex;gap:.45rem;padding:.55rem .6rem;background:#16202e}.rdr .rs input{flex:1;min-width:0;border-radius:.7rem}.rdr .rs button{padding:0 .8rem;border-radius:.7rem;background:#334155;color:#e2e8f0;font-size:1rem}
 .cal{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;min-height:118px}.cal .cst{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;overflow-wrap:normal}.cal .cl{margin-top:auto;padding-top:2px}
 .ro input,.ro select,.ro textarea,.ro button{pointer-events:none;opacity:.65}
 .ro2 input,.ro2 select,.ro2 textarea{pointer-events:none;opacity:.65}
@@ -478,7 +478,6 @@ async function baseVec(map,fb){try{
  if(!window.maplibregl){await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',1);await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js')}
  if(!L.maplibreGL)await ldS('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js');
  const st=await (await fetch('https://tiles.openfreemap.org/styles/liberty')).json(),hide=/^(park_outline|natural_earth|boundary_3|boundary_disputed|poi_|landuse_(pitch|track|cemetery|hospital|school)|building|road_one_way|highway-shield|road_shield|airport|aeroway|waterway_line_label)/;
- try{st.sources.openmaptiles.tileSize=256}catch(e){}
  st.layers.forEach(l=>{const id=l.id;l.paint=l.paint||{};if(hide.test(id)){l.layout=l.layout||{};l.layout.visibility='none';return}
   if(l.type==='symbol'&&l.layout&&l.layout['text-field']&&/^(label_|water_name|highway-name)/.test(id))l.layout['text-field']=['coalesce',['get','name:latin'],['get','name:en'],['get','name']];
   if(/^label_(village|other)$/.test(id))l.minzoom=7;
@@ -488,7 +487,7 @@ async function baseVec(map,fb){try{
   else if(/^road_/.test(id)&&l.type==='line'){if(/casing/.test(id))l.paint['line-opacity']=0;else{l.paint['line-color']=/trunk|motorway|primary/.test(id)?'#9a9cc4':/secondary|tertiary/.test(id)?'#7f86ad':'#3d7a74';l.paint['line-opacity']=.9}}
   else if(id==='boundary_2'){l.paint['line-color']='#7a5fb0';l.paint['line-opacity']=.7}
   else if(l.type==='symbol'){const w=/water_name/.test(id);l.paint['text-color']=w?'#6f8fe0':/country/.test(id)?'#d9a7c7':'#f4f8f6';l.paint['text-halo-color']=w?'rgba(38,54,125,.7)':'rgba(20,40,44,.6)';l.paint['text-halo-width']=1}});
- const gl=L.maplibreGL({style:st,pane:'basep'}).addTo(map),gm=gl.getMaplibreMap(),fx=()=>{try{map.invalidateSize();gm.resize();gm.triggerRepaint()}catch(e){}};gm.once('idle',()=>{fx();setTimeout(()=>map.removeLayer(fb),400)});[300,900,2200].forEach(t=>setTimeout(fx,t))}catch(e){}}
+ const gl=L.maplibreGL({style:st,pane:'basep'}).addTo(map),gm=gl.getMaplibreMap(),fx=()=>{try{map.invalidateSize();gm.resize();gm.triggerRepaint()}catch(e){}};gm.once('load',()=>{try{const s=gm.getSource('openmaptiles');if(s){s.tileSize=256;const sc=gm.style.sourceCaches.openmaptiles;sc.clearTiles();sc.update(gm.transform);gm.triggerRepaint()}}catch(e){}});gm.once('idle',()=>{fx();setTimeout(()=>map.removeLayer(fb),400)});[300,900,2200].forEach(t=>setTimeout(fx,t))}catch(e){}}
 var RD={i:6,fr:[],pl:0,tm:null,map:null,el:null,lay:null,mk:null};
 const RDW='https://ilmgs.envir.ee/geoserver/ilm/wms',RDB='2151959,7585734,3462850,8774302',rdIso=t=>new Date(t).toISOString().replace(/\.\d+Z$/,'.000Z');
 async function rdTimes(){if(RD.cap&&Date.now()-RD.cap.at<120000)return RD.cap;const t=await fetch(RDW+'?service=WMS&version=1.1.1&request=GetCapabilities').then(r=>r.text()),g=n=>{const i=t.search(new RegExp('<Name>'+n+'</Name>')),j=t.indexOf('<Extent name="time"',i),k=t.indexOf('</Extent>',j);return t.slice(t.indexOf('>',j)+1,k).split(',').map(x=>Date.parse(x.trim())).filter(x=>x>0)};RD.cap={at:Date.now(),o:g('cmp_cap'),f:g('nowcasting')};return RD.cap}
