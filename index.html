@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
+.ro input,.ro select,.ro textarea,.ro button,.ro [onclick]{pointer-events:none;opacity:.65}
 :root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{background:#0f172a;color:#f8fafc;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -94,7 +95,7 @@ const defRules=()=>[
 const defGear=()=>[['LED','Aputure 600d'],['LED','Tuubivalgustid'],['HMI','M18 HMI'],['HMI','4K HMI'],['Tungsten','2K Fresnel'],['Tungsten','Junior 1K'],['Kaablid','Stingerid 20m'],['Kaablid','Jaotuskarbid'],['Statiivid ja rigging','C-standid'],['Statiivid ja rigging','Flagid ja silkid'],['Kulumaterjal','Geelid'],['Kulumaterjal','Gaffer-teip'],['Kulumaterjal','Klambrid'],['Kulumaterjal','Pirnid']].map(([c,n])=>({id:uid(),cat:c,name:n,ok:false,bad:false,q:5}));
 const newP=n=>({id:uid(),name:n,loc:'',day:1,days:5,call:'07:00',wrap:'19:00',lunch:'13:00',rules:defRules(),crew:[],gear:defGear(),loans:[],req:[],sheets:[],lat:59.437,lon:24.754,pw:{cap:32,items:[]},photos:[]});
 function load(){try{const x=JSON.parse(localStorage.getItem('bb2')||localStorage.getItem('bb1'));if(x&&x.projects){x.projects.forEach(p=>{const m=p.rules&&p.rules.find(z=>z.id=='max');if(m&&m.val==11){m.val=12;m.label='Normaalpäev (h, lõuna sees)'}if(!p.pw){p.rules=defRules();p.lat=59.437;p.lon=24.754;p.pw={cap:32,items:[]};p.photos=[];if(!p.gear.some(g=>g.q!=null))p.gear.push(...defGear().filter(g=>g.cat=='Kulumaterjal'))}});return x}}catch(e){}const p=newP('Projekt 1');return{cur:p.id,projects:[p],crewDb:[],cal:[]}}
-function save(){S.projects.forEach(p=>{if(p.cd&&p.crew)p.cd[p.date]=p.crew;if(p.dd&&p.dd[p.date])Object.assign(p.dd[p.date],{day:p.day,days:p.days,loc:p.loc,call:p.call,wrap:p.wrap,lunch:p.lunch})});try{localStorage.setItem('bb2',JSON.stringify(S))}catch(e){}if(typeof syDirty=='function')syDirty()}
+function save(){S.projects.forEach(p=>{if(p.cd&&p.crew)p.cd[p.date]=p.crew;if(p.dd&&p.dd[p.date])Object.assign(p.dd[p.date],{day:p.day,days:p.days,loc:p.loc,call:p.call,wrap:p.wrap,lunch:p.lunch})});try{localStorage.setItem('bb2',JSON.stringify(S))}catch(e){}if(typeof syDirty=='function')syDirty();if(typeof shDirty=='function')shDirty()}
 let S=load(),tab='day',gcat='LED';
 const P=()=>{const p=S.projects.find(p=>p.id===S.cur)||S.projects[0];fixP(p);return p};
 const rule=(p,id)=>p.rules.find(x=>x.id===id&&x.on);
@@ -275,8 +276,9 @@ function addReq(){const v=$('#rq').value.trim();if(!v)return;P().req.push({id:ui
 
 function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
- $('#nav').innerHTML=TABS.map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
- $('#app').innerHTML={day:vHome2,crew:vCrew2,gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
+ if(typeof er=='function'&&er()&&er()!='admin'&&tab=='proj')tab='day';
+ $('#nav').innerHTML=TABS.filter(([k])=>k!='proj'||!(typeof er=='function'&&er()&&er()!='admin')).map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
+ $('#app').innerHTML={day:vHome2,crew:vCrew2,gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);try{const ro=!!er()&&!shMgrV()&&(tab=='gear'||tab=='cal');$('#app').classList.toggle('ro',ro);if(ro)$('#app').insertAdjacentHTML('afterbegin','<div class="card org sub">Ainult vaatamine: sul pole selle muutmise õigust.</div>')}catch(e){}tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
 
 function nextCall(p,n){try{const D=new Set([...Object.keys(p.dd||{}),...csDates(p)]);let best=null;D.forEach(d=>{const e=(p.dd||{})[d]||{};if(e.kind=='event')return;let c=e.call;try{const V=csVers(p,d),l=V[V.length-1];if(l&&l.i&&l.i.call)c=l.i.call}catch(x){}if(!/^\d{1,2}:\d{2}$/.test(c||''))return;const t=new Date(d+'T'+String(c).padStart(5,'0')+':00');if(t>n&&(!best||t<best.t))best={t,d}});if(!best)return null;const td=today(),WDs=['P','E','T','K','N','R','L'],lab=best.d==td?'':best.d==dayAdd(td,1)?'homme':WDs[best.t.getDay()]+' '+best.d.slice(8)+'.'+best.d.slice(5,7);return{sec:Math.floor((best.t-n)/1000),lab}}catch(e){return null}}
 function wrapStart(p){try{const sh=planSheet(p),r=sh&&sh.rows&&sh.rows.find(x=>/start of wrap|wrap start/i.test(x.label));if(r)return tf(r.t)}catch(e){}return p.wrap}
@@ -836,7 +838,7 @@ function syDirty(){try{if(!SY.ready||SY.mute)return;const js=JSON.stringify(S);i
 async function syPush(){if(!SY.col)return;if(SY.busy){SY.again=1;return}SY.busy=1;try{const cm=await SY.col.doc('bbmeta').get();if(cm.exists){const d=cm.data();if(d.dev!=SY.dev&&d.ts>SY.rts){SY.busy=0;SY.pend=d;syBackup('enne ülekirjutamist');syTryPull();return}}if(!SY.ts){SY.ts=Date.now();try{localStorage.setItem('bb2ts',SY.ts)}catch(e){}}const js=JSON.stringify(S),N=80000,n=Math.max(1,Math.ceil(js.length/N)),ts=SY.ts;for(let i=0;i<n;i++)await SY.col.doc('bbc'+i).set({i,s:js.slice(i*N,(i+1)*N)});await SY.col.doc('bbmeta').set({ts,n,dev:SY.dev});SY.rts=ts;try{localStorage.setItem('bb2rts',ts)}catch(e){}syMsg('☁ Sünkroonitud '+hh())}catch(e){syMsg('☁ Sünkroonimine ebaõnnestus – puuduta, et uuesti proovida')}SY.busy=0;if(SY.again){SY.again=0;syPush()}}
 function syBackup(why){try{const L=JSON.parse(localStorage.getItem('bb2_bk')||'[]');L.unshift({t:Date.now(),w:why,s:JSON.stringify(S)});while(L.length>3)L.pop();localStorage.setItem('bb2_bk',JSON.stringify(L))}catch(e){try{localStorage.removeItem('bb2_bk')}catch(e2){}}}
 function syRestore(i){try{const L=JSON.parse(localStorage.getItem('bb2_bk')||'[]'),b=L[i];if(!b)return;if(!confirm('Taastan varukoopia ('+new Date(b.t).toLocaleString('et')+')? Praegune seis salvestatakse samuti varukoopiaks.'))return;syBackup('enne taastamist');const x=JSON.parse(b.s),cur=S.cur;SY.mute=1;S=x;if(S.projects.some(p=>p.id==cur))S.cur=cur;S.projects.forEach(p=>{p.cd=p.cd||{};p.dd=p.dd||{};if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[]});SY.mute=0;SY.last='';SY.ready=1;SY.ts=Date.now();SY.rts=Date.now()+1;try{localStorage.setItem('bb2ts',SY.ts)}catch(e){}save();syDirty();SY.last=JSON.stringify(S);syPush();r()}catch(e){}}
-function syAdopt(x,ts){syBackup('enne sünkroonist laadimist');const cur=S.cur,dd={};S.projects.forEach(p=>dd[p.id]=p.date);SY.mute=1;try{S=x;if(S.projects.some(p=>p.id==cur))S.cur=cur;S.projects.forEach(p=>{p.cd=p.cd||{};p.dd=p.dd||{};if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[]});if(!window.GT1){window.GT1=1;gToday()}try{localStorage.setItem('bb2',JSON.stringify(S))}catch(e){}SY.ts=ts;SY.rts=ts;try{localStorage.setItem('bb2ts',ts);localStorage.setItem('bb2rts',ts)}catch(e){}SY.last=JSON.stringify(S)}finally{SY.mute=0}r()}
+function syAdopt(x,ts){syBackup('enne sünkroonist laadimist');const cur=S.cur,dd={};S.projects.forEach(p=>dd[p.id]=p.date);SY.mute=1;try{S=x;if(S.projects.some(p=>p.id==cur))S.cur=cur;S.projects.forEach(p=>{p.cd=p.cd||{};p.dd=p.dd||{};if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[]});if(!window.GT1){window.GT1=1;gToday()}try{localStorage.setItem('bb2',JSON.stringify(S))}catch(e){}SY.ts=ts;SY.rts=ts;try{localStorage.setItem('bb2ts',ts);localStorage.setItem('bb2rts',ts)}catch(e){}SY.last=JSON.stringify(S)}finally{SY.mute=0}try{if(typeof SH!='undefined'&&SH.ready)shApply(true)}catch(e){}r()}
 async function syPull(m){if(SY.pulling)return;SY.pulling=1;try{const P=[];for(let i=0;i<m.n;i++){const d=await SY.col.doc('bbc'+i).get();if(!d.exists)throw new Error('chunk');P.push(d.data().s)}const x=JSON.parse(P.join(''));if(!x||!x.projects)throw new Error('bad');syAdopt(x,m.ts);syMsg('☁ Uuendatud teisest seadmest '+hh())}catch(e){syMsg('☁ Andmete laadimine ebaõnnestus')}SY.pulling=0}
 function syTryPull(){const m=SY.pend;if(!m)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){setTimeout(syTryPull,4000);return}SY.pend=null;if(m.ts>SY.ts)syPull(m)}
 async function syStart(){try{const mm=await SY.col.doc('bbmeta').get();let push=false;if(mm.exists){const d=mm.data();if(!(d.ts>SY.ts&&!(SY.ts===0&&syHas())))SY.rts=Math.max(SY.rts,d.ts);if(d.ts>SY.ts&&!(SY.ts===0&&syHas())){await syPull(d)}else if(d.ts<SY.ts||(SY.ts===0&&syHas())){push=true}else syMsg('☁ Sünkroonitud')}else if(syHas()||SY.ts){push=true}else syMsg('☁ Sünkroon valmis (andmeid pole veel)');SY.last=JSON.stringify(S);SY.ready=1;if(push)syPush();setTimeout(()=>{imgSweep();try{loadCsImg()}catch(e){}},3000);SY.col.doc('bbmeta').onSnapshot(s=>{if(!s.exists)return;const d=s.data();if(d.dev==SY.dev||d.ts<=SY.ts)return;SY.pend=d;syTryPull()},()=>{});document.addEventListener('visibilitychange',()=>{if(document.hidden&&SY.t){clearTimeout(SY.t);syPush()}})}catch(e){syMsg('☁ Sünkroon ei käivitunud')}}
@@ -855,16 +857,55 @@ async function tmStart(){try{const em=(SY.email||'').toLowerCase();if(TM.off){TM
  if(em==TMADMIN)TM.role='admin';else{try{const d=await SY.fs.collection('members').doc(em).get();TM.role=d.exists?(d.data().role||''):''}catch(e){TM.role=''}}
  TM.ok=1;
  if(TM.role)TM.off=SY.fs.collection('members').onSnapshot(s=>{TM.list=s.docs.map(d=>Object.assign({email:d.id},d.data()));TM.err='';tmRedraw()},e=>{TM.err='Meeskonna nimekirja ei saanud lugida ('+(e&&e.code||'viga')+')';tmRedraw()});
+ if(TM.role)shStart();else shStop();
  tmRedraw()}catch(e){TM.err='Meeskonna andmed ei laadinud'}}
 function vTeam(){if(!TM.ok)return '';const adm=TM.role=='admin',ib='class="w-full bg-slate-900 border border-slate-500 rounded p-2"',opt=v=>TMROLES.map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('');
  let h=`<div class="card space-y-2"><b>Meeskond</b><div class="sub">${SY.email?esc(SY.email):'Pole sisse logitud'} · roll: ${TM.role?esc(tmName(TM.role)):'pole meeskonna liige'}</div>`;
  if(TM.err)h+=`<div class="sub">${esc(TM.err)}</div>`;
  if(TM.role)h+=TM.list.slice().sort((a,b)=>(a.name||a.email).localeCompare(b.name||b.email)).map(m=>`<div class="flex gap-2 items-center"><span class="flex-1">${esc(m.name||m.email)}<span class="sub block">${esc(m.email)}</span></span>${adm?`<select class="!w-28" onchange="tmSet('${esc(m.email)}',this.value)">${opt(m.role)}</select><button class="btn" onclick="tmDel('${esc(m.email)}')">✕</button>`:`<span class="sub">${esc(tmName(m.role))}</span>`}</div>`).join('');
+ if(adm)h+=`<label class="sub block">Vaata rollina (ainult vaade)<select onchange="TM.view=this.value;r()"><option value="">Ise (admin)</option>${TMROLES.filter(x=>x[0]!='admin').map(x=>`<option value="${x[0]}" ${TM.view==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></label>`;
  if(adm)h+=`<div class="space-y-2"><input id="tme" type="email" placeholder="Google'i e-post" ${ib}><input id="tmn" placeholder="Nimi" ${ib}><div class="flex gap-2"><select id="tmr" class="grow">${opt('crew')}</select><button class="btn p" onclick="tmAdd()">Lisa</button></div></div>`;
  return h+'</div>'}
 async function tmAdd(){const e=($('#tme').value||'').trim().toLowerCase(),n=($('#tmn').value||'').trim(),ro=$('#tmr').value;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){alert('Sisesta korrektne e-posti aadress');return}try{await SY.fs.collection('members').doc(e).set({role:ro,name:n,added:Date.now()});$('#tme').value='';$('#tmn').value=''}catch(x){alert('Lisamine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 async function tmSet(e,ro){try{await SY.fs.collection('members').doc(e).update({role:ro})}catch(x){alert('Muutmine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
 async function tmDel(e){if(!confirm('Eemaldan '+e+' meeskonnast? Tema isiklikud andmed jäävad alles.'))return;try{await SY.fs.collection('members').doc(e).delete()}catch(x){alert('Eemaldamine ebaõnnestus ('+(x&&x.code||'viga')+')')}}
+/* ---------- Ühine andmeruum (kalender, tehnika, laenutused) ---------- */
+const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0},SHC=['calendar','gear','loans','projects'];
+const er=()=>TM.view||TM.role,shMgrV=()=>['admin','gaffer','bestboy'].includes(er()),shMgr=()=>['admin','gaffer','bestboy'].includes(TM.role),shW=c=>c=='loans'?!!TM.role:shMgr();
+function shStop(){SH.un.forEach(f=>{try{f()}catch(e){}});SH.un=[];SH.ready=0;SH.got={};SH.last={}}
+function shStart(){shStop();SH.rem={calendar:new Map(),gear:new Map(),loans:new Map(),projects:new Map()};
+ SHC.forEach(c=>SH.un.push(SY.fs.collection(c).onSnapshot({includeMetadataChanges:true},s=>{if(s.metadata.fromCache&&s.empty)return;const m=new Map();s.docs.forEach(d=>{const x=d.data();try{m.set(d.id,{id:d.id,pid:x.pid,o:x.o||0,item:JSON.parse(x.j),sig:x.j+'|'+(x.o||0)+(x.pid||'')})}catch(e){}});SH.rem[c]=m;SH.got[c]=1;if(SHC.every(k=>SH.got[k])){SH.ready=1;clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),150)}},e=>{syMsg('☁ Ühiste andmete viga ('+(e&&e.code||'?')+')')})))}
+function shLocal(){const m=new Map();
+ S.cal.forEach((e,i)=>{if(!e.id)e.id=uid();m.set('calendar/'+e.id,{c:'calendar',id:e.id,d:{j:JSON.stringify(e),o:i}})});
+ S.projects.forEach(p=>{m.set('projects/'+p.id,{c:'projects',id:p.id,d:{j:JSON.stringify({name:p.name,glists:p.glists||{}}),o:0}});
+  (p.gear||[]).forEach((g,i)=>{if(!g.id)g.id=uid();m.set('gear/'+p.id+'_'+g.id,{c:'gear',id:p.id+'_'+g.id,d:{j:JSON.stringify(g),pid:p.id,o:i}})});
+  (p.loans||[]).forEach((l,i)=>{if(!l.id)l.id=uid();m.set('loans/'+p.id+'_'+l.id,{c:'loans',id:p.id+'_'+l.id,d:{j:JSON.stringify(l),pid:p.id,o:i}})})});
+ return m}
+const shSig=d=>d.j+'|'+(d.o||0)+(d.pid||'');
+function shDirty(){try{if(!SH.ready)return;clearTimeout(SH.t);SH.t=setTimeout(shPush,1500)}catch(e){}}
+async function shPush(){SH.t=null;if(!SH.ready)return;if(SH.busy){SH.t=setTimeout(shPush,1500);return}SH.busy=1;let revert=0;
+ try{const L=shLocal(),ops=[];
+  L.forEach((v,k)=>{if(SH.last[k]===shSig(v.d))return;if(!shW(v.c)){revert=1;return}ops.push(['s',k,v])});
+  Object.keys(SH.last).forEach(k=>{if(L.has(k))return;if(!shW(k.split('/')[0])){revert=1;return}ops.push(['d',k])});
+  ops.sort((x,y)=>(x[1].startsWith('projects/')?1:0)-(y[1].startsWith('projects/')?1:0));
+  for(let i=0;i<ops.length;i+=400){const part=ops.slice(i,i+400),b=SY.fs.batch();part.forEach(o=>{const [c,id]=o[1].split('/');const ref=SY.fs.collection(c).doc(id);if(o[0]=='s')b.set(ref,o[2].d);else b.delete(ref)});await b.commit();part.forEach(o=>{if(o[0]=='s')SH.last[o[1]]=shSig(o[2].d);else delete SH.last[o[1]]})}
+  if(ops.length)syMsg('☁ Ühised andmed sünkroonitud '+hh())}
+ catch(e){if(e&&e.code=='permission-denied')revert=1;else{syMsg('☁ Ühiste andmete salvestus ebaõnnestus, proovin uuesti');SH.t=setTimeout(shPush,15000)}}
+ SH.busy=0;if(revert)shApply(true)}
+function shApply(force){try{if(!SH.ready)return;
+ if(!force&&(SH.t||SH.busy)){clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),800);return}
+ const a=document.activeElement;if(!force&&a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),3000);return}
+ const R=SH.rem,empty=!R.projects.size;
+ if(empty){if(shMgr()&&!SH.mig){SH.mig=1;shPush()}return}
+ if(!SH.bk){SH.bk=1;syBackup('enne ühiste andmete laadimist')}
+ const snap=()=>JSON.stringify([S.cal,S.projects.map(p=>[p.id,p.name,p.glists,p.gear,p.loans])]),before=snap(),byO=(x,y)=>x.o-y.o;
+ S.cal=[...R.calendar.values()].sort(byO).map(x=>x.item);
+ R.projects.forEach((x,id)=>{let p=S.projects.find(q=>q.id==id);if(!p){p=newP(x.item.name||'Projekt');p.id=id;S.projects.push(p)}p.name=x.item.name||p.name;p.glists=x.item.glists||{};
+  p.gear=[...R.gear.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item);p.loans=[...R.loans.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item)});
+ if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));
+ if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
+ SH.last={};SHC.forEach(c=>R[c].forEach((x,id)=>SH.last[c+'/'+id]=x.sig));
+ if(snap()!==before){save();r()}}catch(e){}}
 function fbLogin(){try{const a=firebase.auth(),pr=new firebase.auth.GoogleAuthProvider();a.signInWithPopup(pr).catch(e=>{if(e&&/popup|operation-not-supported|cancelled/.test(e.code||''))a.signInWithRedirect(pr);else syMsg('☁ Sisselogimine ebaõnnestus ('+(e&&e.code||'?')+')')})}catch(e){}}
 function syClick(){if(SY.needLogin){fbLogin();return}if(SY.col){SY.ts=Date.now();syPush()}}
 function fbLogout(){try{if(confirm('Logi välja? Andmed jäävad pilve alles.')){firebase.auth().signOut();location.reload()}}catch(e){}}
