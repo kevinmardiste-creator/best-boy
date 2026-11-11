@@ -198,7 +198,7 @@ function mhShoot(p){return Object.keys(p.dd||{}).filter(d=>(p.dd[d]||{}).kind!='
 function mhGrid(cell){const [y,m]=MH.mo.split('-').map(Number),n=new Date(y,m,0).getDate(),off=(new Date(y,m-1,1).getDay()+6)%7,pad=x=>String(x).padStart(2,'0');
  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin:.2rem 0 .4rem"><button class="btn" onclick="mhMo(-1)">‹</button><b>${MN[m-1]} ${y}</b><button class="btn" onclick="mhMo(1)">›</button></div><div class="sub" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-bottom:4px">${['E','T','K','N','R','L','P'].map(x=>`<div>${x}</div>`).join('')}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">`+'<div></div>'.repeat(off);
  for(let i=1;i<=n;i++)h+=cell(`${y}-${pad(m)}-${pad(i)}`,i);return h+'</div>'}
-const MHB='aspect-ratio:1/1;min-width:0;border-radius:.7rem;border-style:solid;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1';
+const MHB='aspect-ratio:5/4;min-width:0;border-radius:.7rem;border-style:solid;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1';
 function mhPaint(){const o=document.getElementById('mhin');if(!o)return;const p=P(),td=today(),D=mhData(p),sh=mhShoot(p);
  if(!MH.mo)MH.mo=(sh.find(d=>d>=td)||td).slice(0,7);
  if(MH.who&&!D.ns.includes(MH.who))MH.who='';
@@ -206,7 +206,7 @@ function mhPaint(){const o=document.getElementById('mhin');if(!o)return;const p=
  all=[...new Set([...TM.list.map(m=>m.name),...S.crewDb.map(x=>x.name)])].filter(Boolean).sort();
  let h=`<div class="space-y-3"><div class="card space-y-2"><div style="display:flex;gap:.4rem">${seg('d','📅 Päevad')}${seg('p','👤 Inimesed')}</div>
  <input id="mhn" list="mhdl" placeholder="Nimi (uus või olemasolev)" style="width:100%"><datalist id="mhdl">${all.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
- <div style="display:flex;gap:.4rem"><button class="btn p" style="flex:1" onclick="mhAdd(1)">★ Põhimeeskonda</button><button class="btn" style="flex:1" onclick="mhAdd(0)">＋ Lisamees${MH.mode=='d'&&MH.sel?' sellele päevale':''}</button></div></div>`;
+ <div style="display:flex;gap:.4rem"><button class="btn p" style="flex:1.6" onclick="mhAdd(0)">＋ Lisamees${MH.mode=='d'&&MH.sel?' sellele päevale':''}</button><button class="btn" style="flex:1" onclick="mhAdd(1)">★ Põhi</button></div></div>`;
  if(MH.mode=='d'){
   h+=`<div class="card">${mhGrid((iso,i)=>{const s=sh.includes(iso),c=D.E.filter(e=>e.date==iso).length,se=iso==MH.sel;return `<button onclick="mhSel('${iso}')" style="${MHB};background:${s?'#1e293b':'#0f172a'};border-width:${se?2:1}px;border-color:${se?'#fbbf24':iso==td?'#f59e0b':'#334155'};color:${s?'#e2e8f0':'#64748b'}"><span>${i}</span><span style="font-size:.72rem;color:${c?'#fbbf24':'#475569'}">${c||'·'}</span></button>`})}<div class="sub" style="margin-top:.4rem">Number päeva all = inimeste arv. Hele päev = võttepäev.</div></div>`;
   if(MH.sel){const d=MH.sel,n=D.E.filter(e=>e.date==d).length;h+=`<div class="card space-y-1"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="color:#fbbf24">${fmtD(d)}</b><span class="sub">${n} inimest</span></div>${D.ns.length?D.ns.map((nm,i)=>{const on=D.has(nm,d);return `<button onclick="mhTogI(${i})" style="width:100%;display:flex;justify-content:space-between;padding:.7rem .9rem;border-radius:.8rem;border:1px solid ${on?'#f59e0b':'#334155'};background:${on?'#f59e0b':'#1e293b'};color:${on?'#0f172a':'#e2e8f0'};font-weight:700"><span>${D.core(nm)?'★ ':''}${esc(nm)}</span><span>${on?'✓':''}</span></button>`}).join(''):'<div class="sub">Inimesi pole veel. Lisa nimi ülal.</div>'}</div>`}
@@ -331,7 +331,7 @@ function vCal(){return '';
 
 function vProj(p){
  return `<div class="card space-y-2"><b>Projektid</b><div class="flex gap-2"><input id="np" placeholder="Uue projekti nimi"><button class="btn p" onclick="addProj()">+</button></div>
- ${S.projects.length>1?`<button class="btn d w-full" onclick="delProj()">Kustuta projekt "${esc(p.name)}"</button>`:''}
+ 
  <label class="sub">Praeguse projekti nimi${inp('text',p.name,"upd('name',this.value)")}</label></div>
  <div class="card space-y-2"><b>Töötingimused (selle projekti)</b><div class="sub">Lülita sisse/välja ja muuda väärtusi. Ainult ajareeglid, summasid ei kuvata.</div>
  ${p.rules.map(x=>`<div class="flex items-center gap-2 py-1 border-t border-slate-600"><input type="checkbox" ${x.on?'checked':''} onchange="ru('${x.id}','on',this.checked)"><span class="flex-1">${esc(x.label)}</span>
@@ -362,7 +362,8 @@ function addCrew(){const n=$('#nn').value.trim();if(!n)return;const role=$('#nr'
 function addLoan(){const i=$('#li').value.trim();if(!i)return;const p=P(),g=(p.gear||[]).find(x=>x.note!==true&&x.name.toLowerCase()==i.toLowerCase()),q=Math.max(1,+($('#lq').value||1));p.loans.push({id:uid(),item:i,to:$('#lt').value,due:$('#ld').value,back:false,q,...(g?{gid:g.id}:{})});save();r()}
 function addCal(){const n=$('#cn').value.trim();if(!n)return;S.cal.push({id:uid(),name:n,date:$('#cd2').value,pid:$('#cp').value});if(!S.crewDb.find(x=>x.name==n))S.crewDb.push({name:n,role:''});save();r()}
 function addProj(){const n=$('#np').value.trim();if(!n)return;const p=newP(n);S.projects.push(p);S.cur=p.id;save();r()}
-function delProj(){if(!confirm('Kustutada projekt?'))return;S.projects=S.projects.filter(p=>p.id!=S.cur);S.cur=S.projects[0].id;save();r()}
+function vDel(p){return S.projects.length>1?`<details class="card"><summary class="font-bold" style="color:#f87171">Ohutsoon</summary><div class="space-y-2 mt-2"><div class="sub">Projekti kustutamine eemaldab kogu selle andmed. Seda ei saa tagasi võtta.</div><button class="btn d w-full" onclick="delProj()">Kustuta projekt "${esc(p.name)}"</button></div></details>`:''}
+function delProj(){const p0=P(),n=prompt('Projekti "'+p0.name+'" kustutamiseks kirjuta selle nimi täpselt:');if(n===null)return;if(n.trim()!=p0.name.trim()){alert('Nimi ei klapi, projekti ei kustutatud.');return}if(!confirm('Kustutan projekti lõplikult. Kindel?'))return;S.projects=S.projects.filter(p=>p.id!=S.cur);S.cur=S.projects[0].id;save();r()}
 function addRule(){const v=$('#nr2').value.trim();if(!v)return;P().rules.push({id:uid(),t:'note',label:v,val:'',on:true});save();r()}
 function addReq(){const v=$('#rq').value.trim();if(!v)return;P().req.push({id:uid(),t:v,done:false});save();r()}
 
@@ -370,7 +371,7 @@ function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
  if(typeof er=='function'&&er()&&permLvl(tab)=='-')tab=(TABS.find(x=>permLvl(x[0])!='-')||['day'])[0];
  $('#nav').innerHTML=TABS.filter(([k])=>permLvl(k)!='-').map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
- $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:p=>vGear(p)+(permLvl('loan')!='-'?vLoan(p):''),loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2,mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
+ $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:p=>vGear(p)+(permLvl('loan')!='-'?vLoan(p):''),loan:vLoan,cal:vCal2,cs:vCS3,proj:p=>vProj2(p)+vDel(p),mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>'+(TM.vm?'Vaatad liikmena: '+esc(((TM.list.find(x=>x.email==TM.vm)||{}).name)||TM.vm):'Vaatad rollina: '+esc(tmName(TM.view)))+'</span><button class="btn" onclick="TM.vm=\'\';TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
  tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl();if(tab=='mh')mhPaint()}
 
