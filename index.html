@@ -121,14 +121,14 @@ details.more{background:#1e293b;border:1px solid #334155;border-radius:1rem;padd
 .sec details.more{background:transparent;border:0;padding:.4rem 0 0;border-top:1px solid #334155;margin-top:.3rem}
 
 .wx{border-radius:1.25rem;padding:1rem;border:1px solid #334155;background:linear-gradient(160deg,var(--a,#1e293b),#0f172a 75%)}
-.wx.sun{--a:#3d2c0a}.wx.rain{--a:#0f2a45}.wx.night{--a:#1c1a45}.wx.cloud{--a:#1f2937}.wx.warn{border-color:#b45309}
+.wx.sun{--a:#3d2c0a}.wx.rain{--a:#1e293b}.wx.night{--a:#1e293b}.wx.cloud{--a:#1e293b}.wx.warn{border-color:#b45309}
 .wxr{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.wxp{font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;background:#0f172a;border:1px solid #334155;color:#cbd5e1;white-space:nowrap}
 .wxt{font-size:4.2rem;line-height:1;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.wxd{font-size:2.2rem;vertical-align:top;color:#fbbf24}
 .wxph{color:#cbd5e1;font-size:1.05rem;margin-top:.15rem}
 .wxv{display:flex;gap:.5rem;align-items:flex-start;border-radius:.85rem;padding:.6rem .8rem;font-weight:600;font-size:.9rem;margin-top:.8rem;line-height:1.35}
 .rdr{margin-top:.7rem;border-radius:1.1rem;overflow:hidden;background:#16202e;position:relative;isolation:isolate;box-shadow:0 10px 30px -12px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07)}
 .rg{padding:.35rem .8rem .5rem;background:#16202e}.rg i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#4aa0d0,#1f5a8c,#9ad25a,#4cae3b,#f4f55a,#e8bd52,#f0843c,#dc3028,#e856f8)}.rg div{display:flex;justify-content:space-between;font-size:.68rem;color:#cbd5e1;margin-top:.25rem}
-.rdr .rm{height:300px;position:relative;z-index:0;background:#26367d}.rdr .rm .leaflet-container,.rdr .rm.leaflet-container{background:#26367d;font-family:inherit}
+.rdr .rm{height:300px;position:relative;z-index:0;background:#1e3a64}.rdr .rm .leaflet-container,.rdr .rm.leaflet-container{background:#1e3a64;font-family:inherit}
 .rdr .leaflet-control-zoom{border:0!important;border-radius:.8rem;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.45)}.rdr .leaflet-control-zoom a{background:rgba(22,32,46,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#e2e8f0;border:0;border-bottom:1px solid rgba(255,255,255,.08);width:32px;height:32px;line-height:32px}.rdr .leaflet-control-zoom a:last-child{border-bottom:0}
 .rdr .rt{position:absolute;left:.6rem;top:.6rem;z-index:500;display:flex;gap:.4rem;align-items:center;background:rgba(22,32,46,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:.25rem .65rem;font-size:.68rem;font-weight:700;letter-spacing:.06em;color:#e2e8f0;box-shadow:0 2px 10px rgba(0,0,0,.4);pointer-events:none}.rdr .rt i{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}.rdr .rt.f i{background:#fbbf24;box-shadow:0 0 8px #fbbf24}
 .rdr .pinm{width:18px;height:18px;border-radius:50%;background:#fbbf24;border:3px solid #fff;box-shadow:0 0 0 0 rgba(251,191,36,.6),0 2px 8px rgba(0,0,0,.5);animation:pinp 2s infinite}@keyframes pinp{70%{box-shadow:0 0 0 14px rgba(251,191,36,0),0 2px 8px rgba(0,0,0,.5)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0),0 2px 8px rgba(0,0,0,.5)}}
@@ -670,11 +670,11 @@ async function baseVec(map,fb){try{
   if(l.type==='symbol'&&l.layout&&l.layout['text-field']&&/^(label_|water_name|highway-name)/.test(id))l.layout['text-field']=['coalesce',['get','name:latin'],['get','name:en'],['get','name']];
   if(id==='label_village')l.minzoom=9;if(l.type==='symbol'&&/^label_/.test(id)){l.layout=l.layout||{};l.layout['text-padding']=18}
   const fl=(c,o)=>{l.paint['fill-color']=c;l.paint['fill-opacity']=o==null?1:o};
-  if(id==='background')l.paint['background-color']='#2e6561';else if(id==='water')fl('#26367d');else if(/^waterway_(river|other)/.test(id))l.paint['line-color']='#26367d';
+  if(id==='background')l.paint['background-color']='#2e6561';else if(id==='water')fl('#1e3a64');else if(/^waterway_(river|other)/.test(id))l.paint['line-color']='#1e3a64';
   else if(id==='landcover_wood')fl('#1f5558');else if(id==='landcover_grass')fl('#55805f');else if(id==='park'){fl('#2c6e5c',.7);l.paint['fill-outline-color']='rgba(90,170,140,.35)'}else if(id==='landcover_wetland'){fl('#547a5f',.85);delete l.paint['fill-pattern'];l.minzoom=6}else if(id==='landcover_sand')fl('#686e5d');else if(id==='landuse_residential')fl('#3b4a5e');
   else if(/^road_/.test(id)&&l.type==='line'){if(/casing/.test(id))l.paint['line-opacity']=0;else{l.paint['line-color']=/trunk|motorway|primary/.test(id)?'#9a9cc4':/secondary|tertiary/.test(id)?'#7f86ad':'#3d7a74';l.paint['line-opacity']=.9}}
   else if(id==='boundary_2'){l.paint['line-color']='#7a5fb0';l.paint['line-opacity']=.7}
-  else if(l.type==='symbol'){const w=/water_name/.test(id);l.paint['text-color']=w?'#6f8fe0':/country/.test(id)?'#d9a7c7':'#f4f8f6';l.paint['text-halo-color']=w?'rgba(38,54,125,.7)':'rgba(20,40,44,.6)';l.paint['text-halo-width']=1}});
+  else if(l.type==='symbol'){const w=/water_name/.test(id);l.paint['text-color']=w?'#6f8fe0':/country/.test(id)?'#d9a7c7':'#f4f8f6';l.paint['text-halo-color']=w?'rgba(30,58,100,.7)':'rgba(20,40,44,.6)';l.paint['text-halo-width']=1}});
  const gl=L.maplibreGL({style:st,pane:'basep'}).addTo(map),gm=gl.getMaplibreMap(),fx=()=>{try{map.invalidateSize();gm.resize();gm.triggerRepaint()}catch(e){}};gm.once('load',()=>{try{const s=gm.getSource('openmaptiles');if(s){s.tileSize=256;const sc=gm.style.sourceCaches.openmaptiles;sc.clearTiles();sc.update(gm.transform);gm.triggerRepaint()}}catch(e){}});gm.once('idle',()=>{fx();setTimeout(()=>map.removeLayer(fb),400)});[300,900,2200].forEach(t=>setTimeout(fx,t))}catch(e){}}
 var RD={i:6,fr:[],pl:0,tm:null,map:null,el:null,lay:null,mk:null};
 const RDW='https://ilmgs.envir.ee/geoserver/ilm/wms',RDB='2151959,7585734,3462850,8774302',rdIso=t=>new Date(t).toISOString().replace(/\.\d+Z$/,'.000Z');
