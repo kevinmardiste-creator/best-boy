@@ -111,7 +111,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const tm=t=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)};
 const fm=m=>Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');
 const ROLES=['Gaffer','Best Boy','Senior valgustehnik','Valgustehnik','Junior valgustehnik','Trainee'];
-const TABS=[['day','Päev'],['cs','Callsheet'],['crew','Töötunnid'],['gear','Tehnika'],['loan','Laenud'],['cal','Kalender'],['mh','Meeskond'],['proj','Projekt']];
+const TABS=[['day','Päev'],['cs','Callsheet'],['crew','Töötunnid'],['gear','Tehnika'],['cal','Kalender'],['mh','Meeskond'],['proj','Projekt']];
 const COL=['#f59e0b','#38bdf8','#a3e635','#f472b6','#c084fc','#2dd4bf'];
 const defRules=()=>[
  {id:'max',t:'max',label:'Normaalpäev (h, lõuna sees)',val:12,on:true},
@@ -345,7 +345,7 @@ function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
  if(typeof er=='function'&&er()&&permLvl(tab)=='-')tab=(TABS.find(x=>permLvl(x[0])!='-')||['day'])[0];
  $('#nav').innerHTML=TABS.filter(([k])=>permLvl(k)!='-').map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
- $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2,mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
+ $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:p=>vGear(p)+(permLvl('loan')!='-'?vLoan(p):''),loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2,mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>'+(TM.vm?'Vaatad liikmena: '+esc(((TM.list.find(x=>x.email==TM.vm)||{}).name)||TM.vm):'Vaatad rollina: '+esc(tmName(TM.view)))+'</span><button class="btn" onclick="TM.vm=\'\';TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
  tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl();if(tab=='mh')mhPaint()}
 
