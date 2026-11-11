@@ -35,13 +35,15 @@ body{background:#0f172a;color:#f8fafc;font-family:system-ui,-apple-system,"Segoe
 input,select{background:#0f172a;border:1px solid #64748b;border-radius:.5rem;padding:.55rem;color:#f8fafc;min-width:0;width:100%}
 input:focus,select:focus,button:focus-visible{outline:2px solid #fbbf24;outline-offset:1px}
 input[type=checkbox]{width:1.6rem;height:1.6rem;accent-color:#f59e0b;flex:none}
-:root{--bg:#0b0e13;--s1:#131923;--s2:#1b2330;--line:#2a3446;--tx:#f5f7fa;--mu:#a4b0c0;--brand:#fbbf24}
+:root{--bg:#0f172a;--s1:#1e293b;--s2:#334155;--line:#475569;--tx:#f8fafc;--mu:#cbd5e1;--brand:#fbbf24}
+#psel{-webkit-appearance:none;appearance:none;min-height:44px;border-radius:999px;border:1px solid #92610f;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right .9rem center/16px,linear-gradient(160deg,#4a3410,#1e293b 75%);padding:.5rem 2.5rem .5rem 1rem;font-weight:700;font-size:1rem;color:#f8fafc;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+@media(min-width:641px){#psel{max-width:24rem}}
 .vd{display:flex;flex-direction:column;gap:12px}
 @media(max-width:640px){
-.vd .hero{display:flex;flex-direction:column;background:linear-gradient(160deg,#4a3410,#131923 72%);border:1px solid #92610f;border-radius:20px;padding:16px 16px 14px}
+.vd .hero{display:flex;flex-direction:column;background:linear-gradient(160deg,#4a3410,#1e293b 72%);border:1px solid #92610f;border-radius:20px;padding:16px 16px 14px}
 .vd .hl{font-size:1.4rem;font-weight:800}
 .vd .chips{gap:8px;margin-top:12px}
-.vd .chip{background:rgba(11,14,19,.55);border:0;border-radius:14px;padding:10px 6px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.vd .chip{background:rgba(15,23,42,.55);border:0;border-radius:14px;padding:10px 6px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
 .vd .chip small{font-size:.75rem;color:var(--mu);letter-spacing:.09em}
 .vd .chip b{font-size:1.4rem}
 .vd .cdw{order:1;margin-top:16px}.vd .chips{order:2}.vd .cdw #cdl{font-size:.8rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--mu)}
@@ -80,7 +82,7 @@ input[type=checkbox]{width:1.6rem;height:1.6rem;accent-color:#f59e0b;flex:none}
 @media(max-width:640px){
 body{background:var(--bg)}
 .vd .dock{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 10px 28px rgba(0,0,0,.5)}
-#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;overflow:visible;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;overflow:visible;background:var(--s1);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 #nav button{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;padding:.4rem 0;font-size:.75rem;font-weight:700;color:var(--mu);position:relative;background:transparent}
 #nav button.on{background:transparent;color:var(--tx)}
 #nav button.on::before{content:'';position:absolute;top:-1px;width:28px;height:3px;border-radius:2px;background:var(--brand)}
