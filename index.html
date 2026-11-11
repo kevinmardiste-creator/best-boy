@@ -111,7 +111,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const tm=t=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)};
 const fm=m=>Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');
 const ROLES=['Gaffer','Best Boy','Senior valgustehnik','Valgustehnik','Junior valgustehnik','Trainee'];
-const TABS=[['day','Päev'],['cs','Callsheet'],['crew','Töötunnid'],['gear','Tehnika'],['loan','Laenud'],['cal','Kalender'],['proj','Projekt']];
+const TABS=[['day','Päev'],['cs','Callsheet'],['crew','Töötunnid'],['gear','Tehnika'],['loan','Laenud'],['cal','Kalender'],['mh','Meeskond'],['proj','Projekt']];
 const COL=['#f59e0b','#38bdf8','#a3e635','#f472b6','#c084fc','#2dd4bf'];
 const defRules=()=>[
  {id:'max',t:'max',label:'Normaalpäev (h, lõuna sees)',val:12,on:true},
@@ -188,10 +188,11 @@ function lunchStart(){const p=P(),t=nowHM();p.lk={d:p.date,s:t,e:''};p.lunch=t;s
 function lunchEnd(){const p=P();if(p.lk&&p.lk.d==p.date){p.lk.e=nowHM();save();r()}}
 function lunchClr(){const p=P();p.lk=null;save();r()}
 const MH={extra:new Set(),all:0,names:[],ds:[]};
-function mhCard(){if(!['admin','bestboy'].includes(er()))return '';return `<div class="card"><button class="btn p w-full text-left" onclick="mhOpen()">👥 Meeskonnahaldur<span class="sub block" style="color:#422006">Põhimeeskond, kuupäevad ja lisamehed</span></button></div>`}
-function mhOpen(){let o=document.getElementById('mhov');if(o)o.remove();o=document.createElement('div');o.id='mhov';o.style.cssText='position:fixed;inset:0;z-index:60;background:#0b1220;display:flex;flex-direction:column';document.body.appendChild(o);mhPaint()}
-function mhClose(){const o=document.getElementById('mhov');if(o)o.remove();r()}
-function mhPaint(){const o=document.getElementById('mhov');if(!o)return;const p=P(),td=today(),sc=document.getElementById('mhs'),sl=sc?sc.scrollLeft:0,st=sc?sc.scrollTop:0,
+function mhCard(){return ''}function mhCardOld(){if(!['admin','bestboy'].includes(er()))return '';return `<div class="card"><button class="btn p w-full text-left" onclick="mhOpen()">👥 Meeskonnahaldur<span class="sub block" style="color:#422006">Põhimeeskond, kuupäevad ja lisamehed</span></button></div>`}
+function mhOpen(){tab='mh';r()}
+function vMH(p){return '<div id="mhin" style="display:flex;flex-direction:column;height:calc(100dvh - 9rem);min-height:24rem;background:#0b1220;border-radius:1rem;overflow:hidden"></div>'}
+function mhClose(){tab='day';r()}
+function mhPaint(){const o=document.getElementById('mhov')||document.getElementById('mhin');if(!o)return;const p=P(),td=today(),sc=document.getElementById('mhs'),sl=sc?sc.scrollLeft:0,st=sc?sc.scrollTop:0,
  E=S.cal.filter(e=>e.pid==p.id),ds=[...new Set([...Object.keys(p.dd||{}).filter(d=>(p.dd[d]||{}).kind!='event'),...E.map(e=>e.date)])].filter(d=>MH.all||d>=td).sort(),
  names=[...new Set([...E.map(e=>e.name),...MH.extra])].filter(Boolean).sort((a,b)=>a.localeCompare(b)),
  has=(n,d)=>E.some(e=>e.name==n&&e.date==d),core=n=>E.some(e=>e.name==n&&e.core),W=['P','E','T','K','N','R','L'];
@@ -344,9 +345,9 @@ function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
  if(typeof er=='function'&&er()&&permLvl(tab)=='-')tab=(TABS.find(x=>permLvl(x[0])!='-')||['day'])[0];
  $('#nav').innerHTML=TABS.filter(([k])=>permLvl(k)!='-').map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
- $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
+ $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:vGear,loan:vLoan,cal:vCal2,cs:vCS3,proj:vProj2,mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>'+(TM.vm?'Vaatad liikmena: '+esc(((TM.list.find(x=>x.email==TM.vm)||{}).name)||TM.vm):'Vaatad rollina: '+esc(tmName(TM.view)))+'</span><button class="btn" onclick="TM.vm=\'\';TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
- tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl()}
+ tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl();if(tab=='mh')mhPaint()}
 
 function nextCall(p,n){try{const D=new Set([...Object.keys(p.dd||{}),...csDates(p)]);let best=null;D.forEach(d=>{const e=(p.dd||{})[d]||{};if(e.kind=='event')return;let c=e.call;try{const V=csVers(p,d),l=V[V.length-1];if(l&&l.i&&l.i.call)c=l.i.call}catch(x){}if(!/^\d{1,2}:\d{2}$/.test(c||''))return;const t=new Date(d+'T'+String(c).padStart(5,'0')+':00');if(t>n&&(!best||t<best.t))best={t,d}});if(!best)return null;const td=today(),WDs=['P','E','T','K','N','R','L'],lab=best.d==td?'':best.d==dayAdd(td,1)?'homme':WDs[best.t.getDay()]+' '+best.d.slice(8)+'.'+best.d.slice(5,7);return{sec:Math.floor((best.t-n)/1000),lab}}catch(e){return null}}
 function wrapStart(p){try{const sh=planSheet(p),r=sh&&sh.rows&&sh.rows.find(x=>/start of wrap|wrap start/i.test(x.label));if(r)return tf(r.t)}catch(e){}return p.wrap}
@@ -980,7 +981,7 @@ function vTeam(){if(!TM.ok)return '';const adm=TM.role=='admin',ib='class="w-ful
  return h+'</div>'}
 const PSEC=[['day','Päev'],['cs','Callsheet'],['crew','Töötunnid'],['gear','Tehnika'],['loan','Laenud'],['cal','Kalender'],['proj','Projekt']],PO=new Set();
 function permDef(role,k){if(role=='gaffer')return ({gear:'-',loan:'-',proj:'-'})[k]||'e';return role=='crew'?({day:'v',cs:'v',crew:'e',gear:'-',loan:'-',proj:'-',cal:'v'})[k]:'e'}
-function permLvl(k){try{const rl=er();if(!rl||rl=='admin')return 'e';const m=(TM.view&&!TM.vm)?null:TM.list.find(x=>x.email==(TM.vm||tmMe()));const o=m&&m.perm&&m.perm[k];return o||permDef(rl,k)}catch(e){return 'e'}}
+function permLvl(k){try{if(k=='mh')return ['admin','bestboy'].includes(er())?'e':'-';const rl=er();if(!rl||rl=='admin')return 'e';const m=(TM.view&&!TM.vm)?null:TM.list.find(x=>x.email==(TM.vm||tmMe()));const o=m&&m.perm&&m.perm[k];return o||permDef(rl,k)}catch(e){return 'e'}}
 function vPerm(){if(!TM.ok||TM.role!='admin')return '';const L=[['','Vaikimisi'],['-','Peidetud'],['v','Vaatab'],['e','Muudab']],N={'-':'peidetud',v:'vaatab',e:'muudab'},ms=TM.list.filter(m=>m.role!='admin'&&m.email!=TMADMIN);if(!ms.length)return '';
  return '<div class="card space-y-2"><b>Õigused</b><div class="sub">Vali liikme juures, mida ta näeb ja muudab. „Vaikimisi" on rolli tavaõigus. Muudatus jõuab tema äppi paari sekundiga.</div>'+ms.map(m=>{const pj=m.pj||[],pm=m.perm||{},em=esc(m.email);return `<details class="border-t border-slate-600 pt-2" ${PO.has(m.email)?'open':''} ontoggle="this.open?PO.add('${em}'):PO.delete('${em}')"><summary class="font-bold">${esc(m.name||m.email)} <span class="sub font-normal">${esc(tmName(m.role))}${Object.keys(pm).length||pj.length?' · kohandatud':''}</span></summary><div class="grid grid-cols-2 gap-2 mt-2">${PSEC.map(([k,n])=>`<label class="sub">${n}<select onchange="tmPerm('${em}','${k}',this.value)">${L.map(([v,t])=>`<option value="${v}" ${(pm[k]||'')==v?'selected':''}>${t}${v==''?' ('+N[permDef(m.role,k)]+')':''}</option>`).join('')}</select></label>`).join('')}</div><button class="btn w-full mt-2" onclick="tmVM('${em}')">👁 Vaata tema vaadet</button><div class="sub mt-2">Projektid (ükski märkimata = kõik projektid)</div><div class="space-y-1">${S.projects.map(q=>`<label class="flex items-center gap-2"><input type="checkbox" ${pj.includes(q.id)?'checked':''} onchange="tmPj('${em}','${q.id}',this.checked)"> ${esc(q.name)}</label>`).join('')}</div></details>`}).join('')+'</div>'}
 function tmVM(e){TM.vm=e;const m=TM.list.find(x=>x.email==e);TM.view=e&&m?(m.role||'crew'):'';if(e)tab='crew';r();window.scrollTo(0,0)}
