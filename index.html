@@ -1088,7 +1088,7 @@ async function tmStart(){try{const em=(SY.email||'').toLowerCase();if(TM.off){TM
  TM.ok=1;
  if(TM.role)TM.off=SY.fs.collection('members').onSnapshot(s=>{TM.list=s.docs.map(d=>Object.assign({email:d.id},d.data()));TM.err='';tmRedraw();if(!shMgr()){const a=document.activeElement;if(!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){shApply(true);r()}}},e=>{TM.err='Meeskonna nimekirja ei saanud lugida ('+(e&&e.code||'viga')+')';tmRedraw()});
  if(TM.role)shStart();else shStop();if(shMgr())setTimeout(imgSweep,2500);if(TM.role&&!shMgr()&&!document.getElementById('shload')){const o=document.createElement('div');o.id='shload';o.style.cssText='position:fixed;inset:0;z-index:80;background:#020617;color:#fbbf24;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.1em';o.textContent='LAEN PROJEKTE…';document.body.appendChild(o);setTimeout(()=>o.remove(),7000)}
- tmRedraw()}catch(e){TM.err='Meeskonna andmed ei laadinud'}}
+ tmRedraw();try{const a=document.activeElement;if(!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))r()}catch(e){}}catch(e){TM.err='Meeskonna andmed ei laadinud'}}
 function vTeam(){if(!TM.ok)return '';const adm=TM.role=='admin',ib='class="w-full bg-slate-900 border border-slate-500 rounded p-2"',opt=v=>TMROLES.map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('');
  let h=`<div class="card space-y-2"><b>Meeskond</b><div class="sub">${SY.email?esc(SY.email):'Pole sisse logitud'} · roll: ${TM.role?esc(tmName(TM.role)):'pole meeskonna liige'}</div>`;
  if(TM.err)h+=`<div class="sub">${esc(TM.err)}</div>`;
