@@ -665,10 +665,10 @@ function ldS(u,css){return new Promise((ok,no)=>{const e=document.createElement(
 async function baseVec(map,fb){try{
  if(!window.maplibregl){await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',1);await ldS('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js')}
  if(!L.maplibreGL)await ldS('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js');
- const st=await (await fetch('https://tiles.openfreemap.org/styles/liberty')).json(),hide=/^(park_outline|natural_earth|boundary_3|boundary_disputed|poi_|landuse_(pitch|track|cemetery|hospital|school)|building|road_one_way|highway-shield|road_shield|airport|aeroway|waterway_line_label)/;
+ const st=await (await fetch('https://tiles.openfreemap.org/styles/liberty')).json(),hide=/^(park_outline|natural_earth|boundary_3|boundary_disputed|poi_|landuse_(pitch|track|cemetery|hospital|school)|building|road_one_way|highway-shield|road_shield|airport|aeroway|waterway_line_label|label_other|highway-name)/;
  st.layers.forEach(l=>{const id=l.id;l.paint=l.paint||{};if(hide.test(id)){l.layout=l.layout||{};l.layout.visibility='none';return}
   if(l.type==='symbol'&&l.layout&&l.layout['text-field']&&/^(label_|water_name|highway-name)/.test(id))l.layout['text-field']=['coalesce',['get','name:latin'],['get','name:en'],['get','name']];
-  if(/^label_(village|other)$/.test(id))l.minzoom=7;
+  if(id==='label_village')l.minzoom=9;if(l.type==='symbol'&&/^label_/.test(id)){l.layout=l.layout||{};l.layout['text-padding']=18}
   const fl=(c,o)=>{l.paint['fill-color']=c;l.paint['fill-opacity']=o==null?1:o};
   if(id==='background')l.paint['background-color']='#2e6561';else if(id==='water')fl('#26367d');else if(/^waterway_(river|other)/.test(id))l.paint['line-color']='#26367d';
   else if(id==='landcover_wood')fl('#1f5558');else if(id==='landcover_grass')fl('#55805f');else if(id==='park'){fl('#2c6e5c',.7);l.paint['fill-outline-color']='rgba(90,170,140,.35)'}else if(id==='landcover_wetland'){fl('#547a5f',.85);delete l.paint['fill-pattern'];l.minzoom=6}else if(id==='landcover_sand')fl('#686e5d');else if(id==='landuse_residential')fl('#3b4a5e');
