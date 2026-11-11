@@ -184,7 +184,7 @@ const nowHM=()=>{const n=new Date();return String(n.getHours()).padStart(2,'0')+
 function lunchQ(p){const k=p.lk&&p.lk.d==p.date?p.lk:null,L=+p.lunchLen||60;
  if(!k)return `<button class="btn w-full mt-2" onclick="lunchStart()">🍽 Lõuna algas</button>`;
  const en=k.e||tf(tm(k.s)+L);
- return `<div class="mt-2 rounded-xl border border-slate-600 p-2 flex items-center gap-2"><div class="flex-1"><div class="font-bold">🍽 Lõuna ${esc(k.s)} – ${esc(en)}</div><div class="sub">${k.e?'Lõuna kestis '+fm((tm(k.e)-tm(k.s)+1440)%1440):'Käib · '+L+' min'}</div></div><button class="btn" onclick="lunchClr()">✕</button></div>`}
+ return `<div class="mt-2 rounded-xl border border-slate-600 p-2 flex items-center gap-2"><div class="flex-1"><div class="font-bold">🍽 Lõuna ${esc(k.s)} – ${esc(en)}</div>${k.e?'':'<div class="sub">Käib · '+L+' min</div>'}</div><button class="btn" onclick="lunchClr()">✕</button></div>`}
 function lunchStart(){const p=P(),t=nowHM();p.lk={d:p.date,s:t,e:''};p.lunch=t;save();r()}
 function lunchEnd(){const p=P();if(p.lk&&p.lk.d==p.date){p.lk.e=nowHM();save();r()}}
 function lunchClr(){const p=P();p.lk=null;save();r()}
