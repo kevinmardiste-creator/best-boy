@@ -35,6 +35,44 @@ body{background:#0f172a;color:#f8fafc;font-family:system-ui,-apple-system,"Segoe
 input,select{background:#0f172a;border:1px solid #64748b;border-radius:.5rem;padding:.55rem;color:#f8fafc;min-width:0;width:100%}
 input:focus,select:focus,button:focus-visible{outline:2px solid #fbbf24;outline-offset:1px}
 input[type=checkbox]{width:1.6rem;height:1.6rem;accent-color:#f59e0b;flex:none}
+:root{--bg:#0b0e13;--s1:#131923;--s2:#1b2330;--line:#2a3446;--tx:#f5f7fa;--mu:#a4b0c0;--brand:#fbbf24}
+body{background:var(--bg)}
+.vd{display:flex;flex-direction:column;gap:12px}
+.vd .hero{display:flex;flex-direction:column;background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:16px 16px 14px}
+.vd .hl{font-size:1.4rem;font-weight:800}
+.vd .chips{gap:8px;margin-top:12px}
+.vd .chip{background:var(--s2);border:0;border-radius:14px;padding:10px 6px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.vd .chip small{font-size:.75rem;color:var(--mu);letter-spacing:.09em}
+.vd .chip b{font-size:1.4rem}
+.vd .cdw{order:1;margin-top:16px}.vd .chips{order:2}.vd .cdw #cdl{font-size:.8rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--mu)}
+.vd .cdw #cd{font-size:3.5rem;font-weight:800;letter-spacing:-.02em}.vd .cdw #cdn{font-size:.95rem;color:var(--mu)}
+.vd .btn{min-height:48px;border-radius:14px;background:var(--s2)}
+.vd .btn.p{background:var(--s2);color:var(--tx);border:1px solid var(--line)}
+.vd .dock{display:flex;gap:8px;align-items:stretch;padding:8px;border-radius:22px;background:var(--s1);border:1px solid var(--line)}
+.vd .dock:empty{display:none}
+.vd .dock .wrb{display:contents}
+.vd .dock .wrb input{order:1;flex:none;width:84px;height:60px;padding:0;font-size:1.25rem;font-weight:800;border-radius:14px;background:var(--s2);border:0;text-align:center}
+.vd .dock>.btn,.vd .dock>div{order:2;flex:1 1 0;min-height:60px;margin:0;font-size:1rem;font-weight:700}
+.vd .dock .wrb .btn{order:3;flex:1.3 1 0;min-height:60px;font-size:1.05rem;font-weight:800;background:var(--brand);color:#0b0e13;border:0}
+.vd .sec{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.vd .sect{font-size:.75rem;color:var(--mu);text-transform:uppercase;letter-spacing:.09em}
+.vd .lb{background:var(--s2);color:var(--tx);font-size:.7rem}.vd .la{font-size:1.05rem;font-weight:700;color:var(--tx)}
+.vd .lbt{min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:14px;background:var(--s2);font-size:.95rem}
+.vd details.vrow,.vd>details.more{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:0 16px}
+.vd details.vrow>summary,.vd>details.more>summary{min-height:56px;display:flex;align-items:center;justify-content:space-between;font-size:1.05rem;font-weight:600;color:var(--tx)}
+.vd details.vrow>summary::after{content:'›';font-size:1.5rem;color:var(--mu)}.vd details.vrow[open]>summary::after{transform:rotate(90deg)}
+.vd details.vrow .sec,.vd details.vrow .card,.vd details.vrow .sunc{background:transparent;border:0;padding:0;margin-bottom:14px}
+@media(max-width:640px){
+.vd .dock{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 10px 28px rgba(0,0,0,.5)}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;overflow:visible;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;padding:.4rem 0;font-size:.75rem;font-weight:700;color:var(--mu);position:relative;background:transparent}
+#nav button.on{background:transparent;color:var(--tx)}
+#nav button.on::before{content:'';position:absolute;top:-1px;width:28px;height:3px;border-radius:2px;background:var(--brand)}
+#vsheet{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:55;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.6)}
+#vsheet button{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:0 14px;border-radius:12px;font-size:1.05rem;font-weight:600;color:var(--tx);background:transparent;text-align:left}
+#vsheet button.on{background:var(--s2)}
+#vbn{bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+body{padding-bottom:150px}}
 .card{background:#1e293b;border:1px solid #475569;border-radius:.75rem;padding:.75rem}
 .btn{background:#475569;border-radius:.5rem;padding:.55rem .8rem;font-weight:600}
 .btn.p{background:#f59e0b;color:#0f172a}
@@ -372,10 +410,17 @@ function delProj(){const p0=P(),n=prompt('Projekti "'+p0.name+'" kustutamiseks k
 function addRule(){const v=$('#nr2').value.trim();if(!v)return;P().rules.push({id:uid(),t:'note',label:v,val:'',on:true});save();r()}
 function addReq(){const v=$('#rq').value.trim();if(!v)return;P().req.push({id:uid(),t:v,done:false});save();r()}
 
+let moreOpen=0;
+const NAVI={day:'M3 12l9-8 9 8M5 10v10h14V10',cs:'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6',crew:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',gear:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-2.1z',cal:'M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',mh:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',proj:'M4 6h16M4 12h16M4 18h16',more:'M5 12h.01M12 12h.01M19 12h.01'};
+const isMob=()=>window.matchMedia&&matchMedia('(max-width:640px)').matches;
+const navIc=k=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${NAVI[k]||NAVI.proj}"/></svg>`;
+function navHTML(){const L=TABS.filter(([k])=>permLvl(k)!='-'),m=isMob(),b=([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';moreOpen=0;r()">${m?navIc(k):''}<span>${n}</span></button>`;if(!m||L.length<=5)return L.map(b).join('');const R=L.slice(4);return L.slice(0,4).map(b).join('')+`<button class="${R.some(x=>x[0]==tab)||moreOpen?'on':''}" onclick="moreOpen=!moreOpen;r()">${navIc('more')}<span>Veel</span></button>`}
+function vSheet(){let s=document.getElementById('vsheet');const L=TABS.filter(([k])=>permLvl(k)!='-').slice(4);if(!isMob()||!moreOpen||L.length<2){if(s)s.remove();return}if(!s){s=document.createElement('div');s.id='vsheet';document.body.appendChild(s)}s.innerHTML=L.map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';moreOpen=0;r()">${navIc(k)}<span>${n}</span></button>`).join('')}
+try{matchMedia('(max-width:640px)').addEventListener('change',()=>r())}catch(e){}
 function r(){
  const p=P();$('#psel').innerHTML=S.projects.map(q=>`<option value="${q.id}" ${q.id==p.id?'selected':''}>${esc(q.name)}</option>`).join('');
  if(typeof er=='function'&&er()&&permLvl(tab)=='-')tab=(TABS.find(x=>permLvl(x[0])!='-')||['day'])[0];
- $('#nav').innerHTML=TABS.filter(([k])=>permLvl(k)!='-').map(([k,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${n}</button>`).join('');
+ $('#nav').innerHTML=navHTML();vSheet();
  $('#app').innerHTML={day:vHome2,crew:(typeof er=='function'&&['crew','gaffer'].includes(er())?vMine:vCrew2),gear:p=>vGear(p)+(permLvl('loan')!='-'?vLoan(p):''),loan:vLoan,cal:vCal2,cs:vCS3,proj:p=>vProj2(p)+vDel(p),mh:vMH}[tab](p);try{const lv=permLvl(tab),ro=lv=='v'&&['gear','cal','loan','proj','crew'].includes(tab),ro2=lv=='v'&&(tab=='day'||tab=='cs');$('#app').classList.toggle('ro',ro);$('#app').classList.toggle('ro2',ro2);}catch(e){}
  try{let vb=document.getElementById('vbn');if(TM.view){if(!vb){vb=document.createElement('div');vb.id='vbn';vb.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:60;background:#b45309;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between';document.body.appendChild(vb)}vb.innerHTML='<span>'+(TM.vm?'Vaatad liikmena: '+esc(((TM.list.find(x=>x.email==TM.vm)||{}).name)||TM.vm):'Vaatad rollina: '+esc(tmName(TM.view)))+'</span><button class="btn" onclick="TM.vm=\'\';TM.view=\'\';r()">Tagasi adminiks</button>'}else if(vb)vb.remove()}catch(e){}
  tick();paintWx();startWx();hlKey='';paintHL();loadCsImg();csScale=1;csZoomInit();paintEl();if(tab=='mh')mhPaint()}
@@ -460,10 +505,9 @@ function vHome(p){
  lk='class="lbt" target="_blank" rel="noopener"';
  return `<div class="hero"><div class="wxr"><div class="hl">Päev ${p.day}<span>/${p.days}</span></div><span class="wxp">${p.date==workDay()?'● Täna':'Valitud päev'}</span></div>
  <div class="chips"><div class="chip"><small>Call</small><b>${esc(p.call||'–')}</b></div><div class="chip"><small>Lõuna</small><b${p.lk&&p.lk.d==p.date?' style="font-size:clamp(.9rem,4.6vw,1.55rem);white-space:nowrap"':''}>${esc(p.lunch||'–')}${p.lk&&p.lk.d==p.date?'<span> – '+esc(p.lk.e||tf(tm(p.lk.s)+(+p.lunchLen||60)))+'</span>':''}</b></div><div class="chip"><small>Wrap</small><b>${esc(wrapStart(p)||'–')}</b></div></div>
- <div class="cdw"><div id="cdl" class="sub">Lõunani</div><div id="cd" class="text-5xl font-extrabold text-amber-400 tabular-nums">--:--:--</div><div id="cdn" class="sub"></div></div>
- ${p.date==workDay()&&p.crew.some(c=>c.call)?`<div class="wrb"><input id="aw2" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" data-t24="1" value="${esc(p.crew.find(c=>c.act)?.act||p.wrap||'')}"><button class="btn p" onclick="setAllAct('aw2')">Wrap kõigile</button></div>`:''}${p.date==workDay()?lunchQ(p):''}</div>
- <div id="wxlive"></div>
- ${sunCard(p)}
+ <div class="cdw"><div id="cdl" class="sub">Lõunani</div><div id="cd" class="text-5xl font-extrabold text-amber-400 tabular-nums">--:--:--</div><div id="cdn" class="sub"></div></div></div><div class="dock">${p.date==workDay()&&p.crew.some(c=>c.call)?`<div class="wrb"><input id="aw2" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" data-t24="1" value="${esc(p.crew.find(c=>c.act)?.act||p.wrap||'')}"><button class="btn p" onclick="setAllAct('aw2')">Wrap kõigile</button></div>`:''}${p.date==workDay()?lunchQ(p):''}</div>
+ <details class="vrow" id="wxd"><summary>Ilm</summary><div id="wxlive"></div></details>
+ ${(h=>h?`<details class="vrow"><summary>Päike ja varjukaart</summary>${h}</details>`:'')(sunCard(p))}
  <div class="sec"><div class="sect">Asukohad</div>${locs(p).map(l=>`<div class="loc"><div class="lt"><span class="lb">${esc(l.n)}</span><span class="la">${l.n!=l.a?esc(l.a):''}</span></div><div class="lbtn"><a ${lk} href="${pinL(l).m}">Maps</a><a ${lk} href="${pinL(l).w}" onclick="return wazeGo(event,'${esc(pinL(l).ws)}')">Waze</a>${l.id!='main'&&l.id!='xl'?`<button class="lbt" onclick="P().locs=P().locs.filter(z=>z.id!='${l.id}');save();r()">✕</button>`:''}</div></div>`).join('')||'<div class="sub">Asukohti pole veel. Lisa allpool.</div>'}
  <details class="more"><summary>＋ Muud asukohad${(p.locs||[]).length?' ('+p.locs.length+')':''}</summary><div class="space-y-2 mt-2">${(p.locs||[]).map(l=>`<div class="loc"><div class="lt"><span class="lb">${esc(l.n)}</span><span class="la">${l.n!=l.a?esc(l.a):''}</span></div><div class="lbtn"><a ${lk} href="${pinL(l).m}">Maps</a><a ${lk} href="${pinL(l).w}" onclick="return wazeGo(event,'${esc(pinL(l).ws)}')">Waze</a><button class="lbt" onclick="P().locs=P().locs.filter(z=>z.id!='${l.id}');save();r()">✕</button></div></div>`).join('')}<input id="ln" placeholder="Nimi (nt Võttepaik 2)"><input id="la" placeholder="Aadress"><button class="btn p w-full" onclick="addLoc()">Lisa</button></div></details></div>
  ${bad||warn?`<button class="stp" style="background:${bad?'#3b1219':'#33230a'};color:${bad?'#fca5a5':'#fcd34d'}" onclick="tab='crew';r()"><span>${bad?'⛔':'⚠'} Tööaja hoiatus · ${p.crew.filter(c=>flags(p,c).length).slice(0,3).map(c=>esc((c.name||'').split(' ')[0])).join(', ')}</span><span>Vaata ›</span></button>`:''}
@@ -682,14 +726,14 @@ function fixP(p){p.roles=p.roles||{};if(p.fixv3!==1){p.fixv3=1;try{const D=p.dd|
 function loadDay(p){const e=p.dd[p.date];if(e)DK.forEach(k=>{if(e[k]!==undefined&&e[k]!=='')p[k]=e[k]})}
 function setDate(p,iso){save();p.date=iso;p.crew=p.cd[iso]=p.cd[iso]||[];['pin','clat','clon','xl','ln'].forEach(k=>delete p[k]);if(p.dd[iso]){loadDay(p);p.loc=p.dd[iso].loc||''}setWq(p,p.loc);save()}
 function goDay(dir){const p=P(),ks=Object.keys(p.dd).sort(),nx=dir>0?ks.find(k=>k>p.date):[...ks].reverse().find(k=>k<p.date);let iso=nx;if(!iso){const d=new Date(p.date);d.setDate(d.getDate()+dir);iso=d.toISOString().slice(0,10)}setDate(p,iso);r()}
-const dayBar=p=>`<div class='flex items-center gap-2'><button class='btn' onclick='goDay(-1)'>‹</button><div class='flex-1 text-center'><b>${p.date.slice(8)}.${p.date.slice(5,7)}.${p.date.slice(0,4)}</b> <span class='sub'>${WD[new Date(p.date).getDay()]}${p.date==today()?' · täna':''}</span></div><button class='btn' onclick='goDay(1)'>›</button></div>`;
+const dayBar=p=>`<div class='flex items-center gap-2'><button class='btn' onclick='goDay(-1)'>‹</button><div class='flex-1 text-center'><b>${p.date.slice(8)}/${p.date.slice(5,7)}/${p.date.slice(0,4)}</b> <span class='sub'>${WD[new Date(p.date).getDay()]}${p.date==today()?' · täna':''}</span></div><button class='btn' onclick='goDay(1)'>›</button></div>`;
 const evCard=p=>{const e=p.dd[p.date],x=evHTML(p,p.date);return (x?`<div class='card space-y-1' style='background:#2d1b4e;border-color:#8b5cf6'><div class='sub'>Minu kalendrikirjed</div>${x}</div>`:'')+(e&&e.kind=='event'?`<div class='card' style='background:#2d1b4e;border-color:#8b5cf6'><div class='sub'>Sündmus</div><div class='text-xl font-bold'>${esc(e.note||'')}</div></div>`:'')};
 function gMoveCard(p){try{const L=gLs(p),ks=Object.keys(L),m=gMain(p);if(!ks.length)return '';const t=p.date.replace(/-/g,''),n=dayAdd(p.date,1).replace(/-/g,''),it=k=>(p.gear||[]).filter(g=>g.src==k&&g.note!==true),
  row=(k,lab)=>{const a=it(k),nm=a.slice(0,4).map(g=>esc(g.name)).join(', ');return `<div class="flex items-center gap-2 py-1 border-t border-slate-600" onclick="gl='${esc(k)}';tab='gear';r()"><div class="flex-1 min-w-0"><b>${esc(L[k].name||k)}</b> <span class="sub">${a.length} rida</span><div class="sub text-xs truncate">${nm}${a.length>4?' +'+(a.length-4):''}</div></div><b style="color:#fbbf24">${lab}</b></div>`},
  inR=d=>{const r=gkd(d);return r!='9'&&r>=t&&r<=n},off=ks.filter(k=>k!=m&&inR(L[k].ret)),on=ks.filter(k=>k!=m&&inR(L[k].pick));
  if(!off.length&&!on.length)return '';
  return `<div class="card space-y-1"><b>Tehnika liikumine</b>${off.length?'<div class="sub">Läheb tagasi</div>'+off.map(k=>row(k,gkd(L[k].ret)==t?'täna':'homme')).join(''):''}${on.length?'<div class="sub mt-1">Tuleb peale</div>'+on.map(k=>row(k,gkd(L[k].pick)==t?'täna':'homme')).join(''):''}</div>`}catch(e){return ''}}
-const vHome2=p=>dayBar(p)+evCard(p)+vHome(p)+gMoveCard(p)+planCard(p),vCrew2=p=>{const m=vCrew(p);return dayBar(p)+m+monthRep(p)+crewTail};
+const vHome2=p=>'<div class="vd">'+dayBar(p)+evCard(p)+vHome(p)+gMoveCard(p)+planCard(p)+'</div>',vCrew2=p=>{const m=vCrew(p);return dayBar(p)+m+monthRep(p)+crewTail};
 function dateHits(t){const now=new Date(),Y=now.getFullYear(),pad=x=>String(x).padStart(2,'0'),H=[],
  near=(d,m)=>{for(const yy of [Y,Y+1,Y-1]){const dt=new Date(yy,m-1,d),df=(dt-now)/864e5;if(df>-120&&df<245&&dt.getMonth()==m-1)return yy}return Y},
  add=(y,m,d,x)=>{if(m<1||m>12||d<1||d>31)return;const dt=new Date(y,m-1,d);if(dt.getMonth()!=m-1)return;H.push({iso:`${y}-${pad(m)}-${pad(d)}`,index:x.index,end:x.index+x[0].length})};
