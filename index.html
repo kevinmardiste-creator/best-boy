@@ -466,12 +466,12 @@ function wxIco(ph,night){ph=String(ph||'').toLowerCase();const sunS='<circle cx=
  else if(/pilv|ülepilv|pime/.test(ph))b=cl(2,10,'#94a3b8');
  else b=night?moon:sunS;
  return `<svg viewBox="0 0 64 64" width="84" height="84" aria-hidden="true">${b}</svg>`}
-function wxChart(H,inW,p){const n=H.length;if(!n)return '';const W=360,L=10,R=10,st=(W-L-R)/n,T=H.map(h=>+h.temperatureValue),mn=Math.min(...T),mx=Math.max(...T),sp=Math.max(mx-mn,8),mc=(mx+mn)/2,ty=t=>53-(t-mc)/sp*38,rp=h=>parseInt(h.extended?.rainProbability)||0;
+function wxChart(H,inW,p){const n=H.length;if(!n)return '';const W=360,L=10,R=10,st=(W-L-R)/n,T=H.map(h=>+h.temperatureValue),mn=Math.min(...T),mx=Math.max(...T),sp=Math.max(mx-mn,8),mc=(mx+mn)/2,ty=t=>53-(t-mc)/sp*38,rp=h=>parseInt(h.extended?.rainProbability)||0,mm=h=>+h.extended?.rainValue||0;
  let band='';const ix=H.map((h,i)=>inW(h)?i:-1).filter(i=>i>=0);if(ix.length)band=`<rect x="${L+ix[0]*st}" y="6" width="${(ix[ix.length-1]-ix[0]+1)*st}" height="112" rx="8" fill="#f59e0b" opacity=".13"/><text x="${L+ix[0]*st+5}" y="17" font-size="9" fill="#fbbf24" font-weight="700" letter-spacing=".05em">CALL–WRAP</text>`;
- const bars=H.map((h,i)=>{const r=rp(h),bh=Math.max(r?2:0,r/100*34),x=L+i*st+st*.2;return `<rect x="${x}" y="${104-bh}" width="${st*.6}" height="${bh}" rx="3" fill="${r>=50?'#3b82f6':'#60a5fa'}" opacity="${(.3+r/140).toFixed(2)}"/>${r>=30?`<text x="${x+st*.3}" y="${100-bh}" font-size="8.5" text-anchor="middle" fill="#bfdbfe" font-weight="700">${r}</text>`:''}`}).join('');
+ const bars=H.map((h,i)=>{const r=rp(h),q=mm(h),bh=q>0?Math.max(2,Math.min(q/2,1)*34):0,x=L+i*st+st*.2;return `<rect x="${x}" y="${104-bh}" width="${st*.6}" height="${bh}" rx="3" fill="${q>=0.5?'#3b82f6':'#60a5fa'}" opacity="${(.45+r/200).toFixed(2)}"/>${q>=0.1?`<text x="${x+st*.3}" y="${100-bh}" font-size="8.5" text-anchor="middle" fill="#bfdbfe" font-weight="700">${q<1?q.toFixed(1):Math.round(q*10)/10}</text>`:''}`}).join('');
  const pts=H.map((h,i)=>[L+i*st+st/2,ty(+h.temperatureValue)]),line=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' '),dots=pts.map((q,i)=>`<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="2.8" fill="#fbbf24"/>${i%3==0?`<text x="${q[0].toFixed(1)}" y="${(q[1]-7).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#f8fafc">${Math.round(T[i])}°</text>`:''}`).join('');
  const lb=H.map((h,i)=>i%2==0?`<text x="${L+i*st+st/2}" y="128" font-size="9.5" text-anchor="middle" fill="#94a3b8">${h.date.slice(11,13)}</text>`:'').join('');
- return `<svg viewBox="0 0 ${W} 134" width="100%" role="img" aria-label="Tunniprognoos: temperatuur ja sajutõenäosus">${band}${bars}<path d="${line}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${lb}</svg>`}
+ return `<svg viewBox="0 0 ${W} 134" width="100%" role="img" aria-label="Tunniprognoos: temperatuur ja sajumillimeetrid">${band}${bars}<path d="${line}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${lb}</svg>`}
 
 function ldS(u,css){return new Promise((ok,no)=>{const e=document.createElement(css?'link':'script');if(css){e.rel='stylesheet';e.href=u}else e.src=u;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
 async function baseVec(map,fb){try{
@@ -537,7 +537,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  <div class="wxv" style="background:${verdict[0]};color:${verdict[1]}"><span>${verdict[2]}</span><span>${verdict[3]}</span></div>${lw?`<div class="wxv" style="background:#7f1d1d;color:#fecaca;margin-top:.4rem"><span>⚠</span><span>Tõstukid: puhangud ${f1(Math.max(liftNow?gs:0,...lift.map(h=>h.extended.gustsValue/3.6)))} m/s${lift.length?' '+hh(lift):' praegu'} (piir 12,5 m/s)</span></div>`:''}
  <div id="radslot"></div>
  
- <div class="wxc">${wxChart(rows,inW,p)}<div class="wxl"><span><i style="background:#fbbf24"></i>°C</span><span><i style="background:#60a5fa"></i>sadu %</span>${inw?'<span><i style="background:#f59e0b;opacity:.5"></i>call–wrap</span>':''}</div></div>
+ <div class="wxc">${wxChart(rows,inW,p)}<div class="wxl"><span><i style="background:#fbbf24"></i>°C</span><span><i style="background:#60a5fa"></i>sadu mm/h</span>${inw?'<span><i style="background:#f59e0b;opacity:.5"></i>call–wrap</span>':''}</div></div>
  <div class="wxr" style="margin-top:.8rem"><span class="sub">${sn?`🌅 ${tf(sn[0])} · 🌇 ${tf(sn[1])}`:'Polaarpäev/-öö'}</span><span class="sub">Allikas: Open-Meteo</span></div>
  </div>`}
 const MN=['jaanuar','veebruar','märts','aprill','mai','juuni','juuli','august','september','oktoober','november','detsember'];let cmo=0;
