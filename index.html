@@ -398,7 +398,7 @@ function vHome(p){
  tile=(a,b)=>`<div class="card text-center"><div class="sub">${a}</div><div class="text-2xl font-extrabold">${b}</div></div>`,
  lk='class="lbt" target="_blank" rel="noopener"';
  return `<div class="hero"><div class="wxr"><div class="hl">Päev ${p.day}<span>/${p.days}</span></div><span class="wxp">${p.date==workDay()?'● Täna':'Valitud päev'}</span></div>
- <div class="chips"><div class="chip"><small>Call</small><b>${esc(p.call||'–')}</b></div><div class="chip"><small>Lõuna</small><b>${esc(p.lunch||'–')}</b></div><div class="chip"><small>Wrap</small><b>${esc(wrapStart(p)||'–')}</b></div></div>
+ <div class="chips"><div class="chip"><small>Call</small><b>${esc(p.call||'–')}</b></div><div class="chip"><small>Lõuna</small><b>${esc(p.lunch||'–')}${p.lk&&p.lk.d==p.date?'<span style="font-size:.72em;font-weight:700"> – '+esc(p.lk.e||tf(tm(p.lk.s)+(+p.lunchLen||60)))+'</span>':''}</b></div><div class="chip"><small>Wrap</small><b>${esc(wrapStart(p)||'–')}</b></div></div>
  <div class="cdw"><div id="cdl" class="sub">Lõunani</div><div id="cd" class="text-5xl font-extrabold text-amber-400 tabular-nums">--:--:--</div><div id="cdn" class="sub"></div></div>
  ${p.date==workDay()&&p.crew.some(c=>c.call)?`<div class="wrb"><input id="aw2" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" data-t24="1" value="${esc(p.crew.find(c=>c.act)?.act||p.wrap||'')}"><button class="btn p" onclick="setAllAct('aw2')">Wrap kõigile</button></div>`:''}${p.date==workDay()?lunchQ(p):''}</div>
  <div id="wxlive"></div>
