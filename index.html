@@ -209,6 +209,11 @@ function mhFill(p,n,ds){ds.forEach(d=>{const ex=S.cal.find(e=>e.pid==p.id&&e.nam
 function mhCore(i){const p=P(),n=MH.names[i];if(!n)return;if(S.cal.some(e=>e.pid==p.id&&e.name==n&&e.core))S.cal.forEach(e=>{if(e.pid==p.id&&e.name==n)delete e.core});else mhFill(p,n,MH.ds);save();mhPaint()}
 function mhAdd(c){const p=P(),n=(document.getElementById('mhn').value||'').trim();if(!n)return;if(!S.crewDb.find(x=>x.name==n))S.crewDb.push({name:n,role:''});if(c)mhFill(p,n,MH.ds);else MH.extra.add(n);save();mhPaint()}
 function mhDel(i){const p=P(),n=MH.names[i];if(!n||!confirm('Eemaldan '+n+' sellelt projektilt (kõik päevad)?'))return;S.cal=S.cal.filter(e=>!(e.pid==p.id&&e.name==n));MH.extra.delete(n);save();mhPaint()}
+function csStep(dir){try{const p=P(),ds=csDates(p),s=csCur(p);if(!s)return;const t=ds[ds.indexOf(csDate(s))+dir];if(!t)return;const V=csVers(p,t);csid=V[V.length-1].id;r()}catch(e){}}
+(()=>{let x0=0,y0=0,ok=false;const busy=t=>document.getElementById('shadeov')||document.getElementById('mhov')||(t&&t.closest&&t.closest('input,textarea,select,[contenteditable]'));
+document.addEventListener('keydown',e=>{if(tab!='cs'||busy(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;if(e.key=='ArrowLeft'){e.preventDefault();csStep(-1)}else if(e.key=='ArrowRight'){e.preventDefault();csStep(1)}});
+document.addEventListener('touchstart',e=>{ok=tab=='cs'&&e.touches.length==1&&!busy(e.target)&&(typeof csScale=='undefined'||csScale<=1.01);if(ok){x0=e.touches[0].clientX;y0=e.touches[0].clientY}},{passive:true});
+document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Math.abs(dx)>80&&Math.abs(dy)<50&&Math.abs(dx)>Math.abs(dy)*2)csStep(dx<0?1:-1)},{passive:true})})();
 function setAllAct(id){const v=($('#'+(id||'aw'))||{}).value;if(!v)return;P().crew.forEach(c=>{if(c.call)c.act=v});save();r()}
 function clearAllAct(){P().crew.forEach(c=>{c.act=''});save();r()}
 
