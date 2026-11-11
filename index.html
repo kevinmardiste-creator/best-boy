@@ -351,6 +351,7 @@ function nextCall(p,n){try{const D=new Set([...Object.keys(p.dd||{}),...csDates(
 function wrapStart(p){try{const sh=planSheet(p),r=sh&&sh.rows&&sh.rows.find(x=>/start of wrap|wrap start/i.test(x.label));if(r)return tf(r.t)}catch(e){}return p.wrap}
 function tick(){const e=$('#cd');if(!e)return;const p=P(),l=$('#cdl'),nx=$('#cdn'),n=new Date(),s=n.getHours()*3600+n.getMinutes()*60+n.getSeconds(),hms=t=>[t/3600|0,(t%3600)/60|0,t%60].map(x=>String(x).padStart(2,'0')).join(':'),set=(lab,t,cls)=>{if(l)l.textContent=lab;e.textContent=hms(Math.max(0,t));e.className='text-5xl font-extrabold tabular-nums '+cls};
  if(p.date!=workDay()){if(l)l.textContent='Lõuna';e.textContent=p.lunch||'--:--';e.className='text-4xl font-extrabold text-slate-300 tabular-nums';if(nx)nx.textContent='';return}
+ {const k=p.lk;if(k&&k.d==p.date&&!k.e){const L=(+p.lunchLen||60)*60,el=(s-tm(k.s)*60+86400)%86400;if(el<L+6*3600){if(el<=L)set('Lõuna lõpuni',L-el,'text-amber-400');else set('Lõuna on ületanud',el-L,'text-red-400');if(nx)nx.textContent='';return}}}
  const wc=(p.crew||[]).filter(c=>c.call);if(wc.length&&wc.every(c=>c.act)){const rl=a=>(tm(a)-tm(p.call)+1440)%1440,mx=wc.map(c=>c.act).sort((a,b)=>rl(b)-rl(a))[0];if(l)l.textContent='Päev lõppenud · wrap märgitud';e.textContent=mx;e.className='text-5xl font-extrabold tabular-nums text-green-400';if(nx)nx.textContent='';return}
  const cs=tm(p.call)*60,rel=t=>(t-cs+86400)%86400,nr=rel(s),lu=rel(tm(p.lunch)*60),mx=rule(p,'max'),lim=(mx?mx.val:12)*3600,we=rel(tm(wrapStart(p))*60);
  const tl=tm(p.wrap)<tm(p.call)&&s<(tm(p.wrap)+120)*60;
@@ -425,7 +426,7 @@ function vHome(p){
  tile=(a,b)=>`<div class="card text-center"><div class="sub">${a}</div><div class="text-2xl font-extrabold">${b}</div></div>`,
  lk='class="lbt" target="_blank" rel="noopener"';
  return `<div class="hero"><div class="wxr"><div class="hl">Päev ${p.day}<span>/${p.days}</span></div><span class="wxp">${p.date==workDay()?'● Täna':'Valitud päev'}</span></div>
- <div class="chips"><div class="chip"><small>Call</small><b>${esc(p.call||'–')}</b></div><div class="chip"><small>Lõuna</small><b>${esc(p.lunch||'–')}${p.lk&&p.lk.d==p.date?'<span style="font-size:.72em;font-weight:700"> – '+esc(p.lk.e||tf(tm(p.lk.s)+(+p.lunchLen||60)))+'</span>':''}</b></div><div class="chip"><small>Wrap</small><b>${esc(wrapStart(p)||'–')}</b></div></div>
+ <div class="chips"><div class="chip"><small>Call</small><b>${esc(p.call||'–')}</b></div><div class="chip"><small>Lõuna</small><b${p.lk&&p.lk.d==p.date?' style="font-size:clamp(.9rem,4.6vw,1.55rem);white-space:nowrap"':''}>${esc(p.lunch||'–')}${p.lk&&p.lk.d==p.date?'<span> – '+esc(p.lk.e||tf(tm(p.lk.s)+(+p.lunchLen||60)))+'</span>':''}</b></div><div class="chip"><small>Wrap</small><b>${esc(wrapStart(p)||'–')}</b></div></div>
  <div class="cdw"><div id="cdl" class="sub">Lõunani</div><div id="cd" class="text-5xl font-extrabold text-amber-400 tabular-nums">--:--:--</div><div id="cdn" class="sub"></div></div>
  ${p.date==workDay()&&p.crew.some(c=>c.call)?`<div class="wrb"><input id="aw2" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" data-t24="1" value="${esc(p.crew.find(c=>c.act)?.act||p.wrap||'')}"><button class="btn p" onclick="setAllAct('aw2')">Wrap kõigile</button></div>`:''}${p.date==workDay()?lunchQ(p):''}</div>
  <div id="wxlive"></div>
@@ -841,12 +842,12 @@ let csScale=1;
 function csApply(z,cx,cy){const b=$('#csbox'),e=$('#csinner');if(!b||!e)return;z=Math.max(1,Math.min(5,z));const k=z/csScale,px=(b.scrollLeft+cx)*k-cx,py=(b.scrollTop+cy)*k-cy;csScale=z;e.style.width=(z*100)+'%';b.scrollLeft=px;b.scrollTop=py}
 function csZoomInit(){const b=$('#csbox');if(!b||b._z)return;b._z=1;
  b.addEventListener('wheel',ev=>{if(!ev.ctrlKey)return;ev.preventDefault();const r0=b.getBoundingClientRect();csApply(csScale*Math.exp(-ev.deltaY*0.01),ev.clientX-r0.left,ev.clientY-r0.top)},{passive:false});
- let d0=0,z0=1;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
- b.addEventListener('touchstart',ev=>{if(ev.touches.length==2){d0=dist(ev.touches);z0=csScale}},{passive:true});
- b.addEventListener('touchmove',ev=>{if(ev.touches.length==2&&d0){ev.preventDefault();const r0=b.getBoundingClientRect(),t=ev.touches;csApply(z0*dist(t)/d0,(t[0].clientX+t[1].clientX)/2-r0.left,(t[0].clientY+t[1].clientY)/2-r0.top)}},{passive:false});
+ let d0=0,z0=1,lc=null;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+ b.addEventListener('touchstart',ev=>{if(ev.touches.length==2){d0=dist(ev.touches);z0=csScale;const r1=b.getBoundingClientRect(),t=ev.touches;lc=[(t[0].clientX+t[1].clientX)/2-r1.left,(t[0].clientY+t[1].clientY)/2-r1.top]}},{passive:true});
+ b.addEventListener('touchmove',ev=>{if(ev.touches.length==2&&d0){ev.preventDefault();const r0=b.getBoundingClientRect(),t=ev.touches;lc=[(t[0].clientX+t[1].clientX)/2-r0.left,(t[0].clientY+t[1].clientY)/2-r0.top];csApply(z0*dist(t)/d0,(t[0].clientX+t[1].clientX)/2-r0.left,(t[0].clientY+t[1].clientY)/2-r0.top)}},{passive:false});
  b.addEventListener('touchend',ev=>{if(ev.touches.length<2)d0=0},{passive:true});
  let dr=null;b.style.cursor='grab';b.addEventListener('mousedown',ev=>{if(ev.button)return;dr={x:ev.clientX,y:ev.clientY,l:b.scrollLeft,t:b.scrollTop};b.style.cursor='grabbing';ev.preventDefault()});window.addEventListener('mousemove',ev=>{if(!dr)return;b.scrollLeft=dr.l-(ev.clientX-dr.x);b.scrollTop=dr.t-(ev.clientY-dr.y)});window.addEventListener('mouseup',()=>{dr=null;b.style.cursor='grab'});
- let gz=1;b.addEventListener('gesturestart',ev=>{ev.preventDefault();gz=csScale});b.addEventListener('gesturechange',ev=>{ev.preventDefault();const r0=b.getBoundingClientRect();csApply(gz*ev.scale,r0.width/2,r0.height/2)})}
+ let gz=1;b.addEventListener('gesturestart',ev=>{ev.preventDefault();gz=csScale});b.addEventListener('gesturechange',ev=>{ev.preventDefault();const r0=b.getBoundingClientRect();csApply(gz*ev.scale,lc?lc[0]:r0.width/2,lc?lc[1]:r0.height/2)});b.addEventListener('gestureend',()=>{lc=null})}
 function csUse(id){const p=P(),s=p.sheets.find(z=>z.id==id);if(!s)return;const V=csVers(p,csDate(s)),i=V.findIndex(z=>z.id==id);applySheet(p,s,i>0?V[i-1]:null);tab='day';r()}
 function csDel(id){const p=P();p.sheets=p.sheets.filter(z=>z.id!=id);imgDel(id);csid='';save();r()}
 const MSTEM=[['jan',1],['feb',2],['mar',3],['mär',3],['apr',4],['may',5],['mai',5],['jun',6],['jul',7],['aug',8],['sep',9],['oct',10],['okt',10],['nov',11],['dec',12],['det',12]];
