@@ -796,7 +796,7 @@ function paintHL(){const p=P(),s=planSheet(p),k1=p.date+'|'+(s?s.id:'')+'|'+(s?n
  const cs=csCur(p),el=$('#hl'),t=$('#hlt');if(!el||!t||!cs)return;if(IMGC[cs.id])csLines(cs.id,IMGC[cs.id]);const R=cs.rows||[],k=nowIdx(cs);
  if(k>=0){const r=R[k];el.style.display='block';let g0=k,g1=k;while(g0>0&&R[g0-1].t===r.t)g0--;while(g1<R.length-1&&R[g1+1].t===r.t)g1++;const b0=hlBox(R[g0],CSL[cs.id],CST[cs.id]),b1=hlBox(R[g1],CSL[cs.id],CST[cs.id]),bx=[Math.min(b0[0],b1[0]),Math.max(b0[1],b1[1])];el.style.top=(bx[0]*100)+'%';el.style.height=Math.max(0.4,(bx[1]-bx[0])*100)+'%';{const lab=x=>{const y=ltxt(x.label);return y!==null?y:(String(x.label||'').replace(/^\s*\d+:\d+\s*·?\s*/,'').trim()||null)};let c=k,cl=lab(r);while(cl===null&&c>0){c--;cl=lab(R[c])}if(cl===null)cl=r.label;let n=k+1,nl=null;while(n<R.length&&(nl=lab(R[n]))===null)n++;t.textContent='Praegu: '+tf(R[c].t)+' '+cl+(n<R.length?'  ·  Järgmine: '+tf(R[n].t)+' '+nl:'')}}
  else{el.style.display='none';t.textContent=!R.length?'Päevaplaani kellaaegu sellelt lehelt ei leitud.':(csDate(cs)==today()?'Päevaplaan pole veel alanud või on lõppenud.':'See pole tänase päeva call sheet.')}}
-function loadCsImg(){if(tab!='cs')return;const s=csCur(P());if(!s)return;imgGet(s.id).then(v=>{const im=$('#csimg');if(!im)return;if(v){im.src=v;paintHL()}else{const n=$('#csnoimg');if(n)n.style.display='block'}})}
+function loadCsImg(){if(tab!='cs')return;const s=csCur(P());if(!s)return;imgGet(s.id).then(v=>{const im=$('#csimg');if(!im)return;if(v){im.src=v;paintHL()}else{const n=$('#csnoimg');if(n)n.style.display='block';if((window.__csr=(window.__csr||0)+1)<5)setTimeout(()=>{try{loadCsImg()}catch(e){}},6000)}})}
 let csScale=1;
 function csApply(z,cx,cy){const b=$('#csbox'),e=$('#csinner');if(!b||!e)return;z=Math.max(1,Math.min(5,z));const k=z/csScale,px=(b.scrollLeft+cx)*k-cx,py=(b.scrollTop+cy)*k-cy;csScale=z;e.style.width=(z*100)+'%';b.scrollLeft=px;b.scrollTop=py}
 function csZoomInit(){const b=$('#csbox');if(!b||b._z)return;b._z=1;
@@ -926,7 +926,7 @@ async function tmStart(){try{const em=(SY.email||'').toLowerCase();if(TM.off){TM
  if(em==TMADMIN)TM.role='admin';else{try{const d=await SY.fs.collection('members').doc(em).get();TM.role=d.exists?(d.data().role||''):''}catch(e){TM.role=''}}
  TM.ok=1;
  if(TM.role)TM.off=SY.fs.collection('members').onSnapshot(s=>{TM.list=s.docs.map(d=>Object.assign({email:d.id},d.data()));TM.err='';tmRedraw()},e=>{TM.err='Meeskonna nimekirja ei saanud lugida ('+(e&&e.code||'viga')+')';tmRedraw()});
- if(TM.role)shStart();else shStop();
+ if(TM.role)shStart();else shStop();if(shMgr())setTimeout(imgSweep,2500);if(TM.role&&!shMgr()&&!document.getElementById('shload')){const o=document.createElement('div');o.id='shload';o.style.cssText='position:fixed;inset:0;z-index:80;background:#020617;color:#fbbf24;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.1em';o.textContent='LAEN PROJEKTE…';document.body.appendChild(o);setTimeout(()=>o.remove(),7000)}
  tmRedraw()}catch(e){TM.err='Meeskonna andmed ei laadinud'}}
 function vTeam(){if(!TM.ok)return '';const adm=TM.role=='admin',ib='class="w-full bg-slate-900 border border-slate-500 rounded p-2"',opt=v=>TMROLES.map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('');
  let h=`<div class="card space-y-2"><b>Meeskond</b><div class="sub">${SY.email?esc(SY.email):'Pole sisse logitud'} · roll: ${TM.role?esc(tmName(TM.role)):'pole meeskonna liige'}</div>`;
@@ -993,7 +993,7 @@ function shApply(force){try{if(!SH.ready)return;
  if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
  SH.last={};SHC.forEach(c=>R[c].forEach((x,id)=>SH.last[c+'/'+id]=x.sig));
  if(!SH.k1){SH.k1=1;shDirty()}
- if(snap()!==before){save();r()}}catch(e){}}
+ if(snap()!==before){save();r()}{const o=document.getElementById('shload');if(o)o.remove()}if(!shMgr())setTimeout(()=>{try{loadCsImg()}catch(e){}},400)}catch(e){}}
 function fbLogin(){try{const a=firebase.auth(),pr=new firebase.auth.GoogleAuthProvider();a.signInWithPopup(pr).catch(e=>{if(e&&/popup|operation-not-supported|cancelled/.test(e.code||''))a.signInWithRedirect(pr);else syMsg('☁ Sisselogimine ebaõnnestus ('+(e&&e.code||'?')+')')})}catch(e){}}
 function syClick(){if(SY.needLogin){fbLogin();return}if(SY.col){SY.ts=Date.now();syPush()}}
 function fbLogout(){try{if(confirm('Logi välja? Andmed jäävad pilve alles.')){firebase.auth().signOut();location.reload()}}catch(e){}}
