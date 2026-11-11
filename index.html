@@ -989,7 +989,7 @@ function shApply(force){try{if(!SH.ready)return;
   if(x.item.roles)p.roles=x.item.roles;
   if(x.item.v>=2){const dd={};R.pdays.forEach(q=>{if(q.pid==id)dd[q.k]=q.item});p.dd=dd;p.sheets=[...R.psheets.values()].filter(q=>q.pid==id).sort(byO).map(q=>q.item);p.cd=p.cd||{};{const cd={};if(R.pcrew)R.pcrew.forEach(q=>{if(q.pid==id)cd[q.k]=q.item});R.tsheets.forEach(q=>{if(q.pid!=id)return;const L=cd[q.k]=cd[q.k]||[],i=L.findIndex(c=>c&&c.id==q.item.id);if(i>=0)L[i]=Object.assign({},L[i],q.item);else if(q.item.s||!R.pcrew)L.push(q.item)});Object.keys(p.cd).forEach(d=>{if(!cd[d])cd[d]=[]});p.cd=cd}if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[];if(p.dd[p.date]){loadDay(p);p.loc=p.dd[p.date].loc||''}}
   p.gear=[...R.gear.values()].filter(g=>g.pid==id).sort(byO).map(g=>{const it=Object.assign({},g.item),f=R.flags.get(id+'_'+it.id);if(f)Object.assign(it,f.item);return it});p.loans=[...R.loans.values()].filter(g=>g.pid==id).sort(byO).map(g=>g.item)});
- if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));
+ if(!shMgr()&&R.projects.size)S.projects=S.projects.filter(p=>R.projects.has(p.id));if(!shMgr()){const q=S.projects.filter(p=>!(/^Projekt \d*$/i.test(p.name||'')&&!(p.sheets||[]).length&&!Object.keys(p.dd||{}).length));if(q.length)S.projects=q;const s3=S.projects.find(p=>/seconds\s*3/i.test(p.name||''));if(s3&&!SH.s3){SH.s3=1;S.cur=s3.id}}
  if(!S.projects.some(p=>p.id==S.cur)&&S.projects[0])S.cur=S.projects[0].id;
  SH.last={};SHC.forEach(c=>R[c].forEach((x,id)=>SH.last[c+'/'+id]=x.sig));
  if(!SH.k1){SH.k1=1;shDirty()}
