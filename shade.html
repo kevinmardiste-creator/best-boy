@@ -19,6 +19,7 @@ header b{color:var(--ac2);font-size:17px}
 .btn.p{background:var(--ac);color:#111}
 .btn.on{background:var(--ac2);color:#111}
 .btn:disabled{opacity:.5}
+details.card>summary{cursor:pointer;font-weight:700;font-size:15px;color:var(--ac2);list-style:none;display:flex;gap:8px;align-items:baseline;padding:2px 0}details.card>summary::-webkit-details-marker,details.in>summary::-webkit-details-marker{display:none}details.card>summary::after{content:'▾';margin-left:auto;color:var(--sub)}details.card[open]>summary::after{content:'▴'}details.in{margin-top:8px}details.in>summary{cursor:pointer;color:var(--sub);font-size:13px;font-weight:600;list-style:none}details.in>summary::before{content:'⚙ '}
 .card{background:var(--card);border-radius:14px;padding:12px;margin:10px 12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .row>.grow{flex:1;min-width:0}
@@ -93,19 +94,21 @@ label.t{display:flex;align-items:center;gap:6px}
   <div class="row">
    <button class="btn" data-v="top">Pealt</button><button class="btn" data-v="S">Lõunast</button><button class="btn" data-v="E">Idast</button><button class="btn" data-v="N">Põhjast</button><button class="btn" data-v="W">Läänest</button><button class="btn" id="rc">📍 Ava siit</button>
   </div>
-  <div class="row" style="margin-top:8px">
-   <select id="gm" class="grow"><option value="sat">Maapind: satelliit</option><option value="ma">Maapind: Maa-ameti ortofoto</option><option value="osm">Maapind: tänavakaart</option><option value="none">Maapind: neutraalne</option></select>
-   <label class="t"><input type="checkbox" id="lt" checked>Puud</label>
-   <label class="t"><input type="checkbox" id="l2" checked>Katuseformid</label>
-   <label class="t"><input type="checkbox" id="lv" checked>Taimkate (Maa-amet)</label>
-   <label class="t"><input type="checkbox" id="lp" checked>Päikese tee</label>
-  </div>
-  <div class="sub" style="margin-top:6px">Satelliidipildil on oma varjud. Simuleeritud varjud on tumedad ja läbipaistvad.</div>
+  <details class="in"><summary>Kaardi kihid</summary>
+   <select id="gm" style="width:100%;margin-top:8px"><option value="sat">Maapind: satelliit</option><option value="ma">Maapind: Maa-ameti ortofoto</option><option value="osm">Maapind: tänavakaart</option><option value="none">Maapind: neutraalne</option></select>
+   <div class="row" style="margin-top:8px">
+    <label class="t"><input type="checkbox" id="lt" checked>Puud</label>
+    <label class="t"><input type="checkbox" id="l2" checked>Katuseformid</label>
+    <label class="t"><input type="checkbox" id="lv" checked>Taimkate (Maa-amet)</label>
+    <label class="t"><input type="checkbox" id="lp" checked>Päikese tee</label>
+   </div>
+   <div class="sub" style="margin-top:6px">Satelliidipildil on oma varjud. Simuleeritud varjud on tumedad ja läbipaistvad.</div>
+  </details>
  </section>
 
- <section class="card">
-  <h3>Puud ja hooned</h3>
-  <div class="row"><button class="btn" id="addt">＋ Lisa puu</button><span class="sub" id="addh">Vajuta kaardil kohta, kuhu puu läheb.</span></div>
+ <details class="card" id="dTree">
+  <summary>🌳 Puud ja hooned <span class="sub">lisa või muuda varjajaid</span></summary>
+  <div class="row" style="margin-top:8px"><button class="btn" id="addt">＋ Lisa puu</button><span class="sub" id="addh">Vajuta kaardil kohta, kuhu puu läheb.</span></div>
   <div class="row" style="margin-top:8px">
    <label class="t grow">Kõrgus <input type="range" id="dh" min="3" max="30" value="12"><b id="dhv">12 m</b></label>
   </div>
@@ -116,22 +119,23 @@ label.t{display:flex;align-items:center;gap:6px}
   <div id="selbox" style="margin-top:10px"></div>
   <div class="row" style="margin-top:8px"><button class="btn" id="unhide">Taasta peidetud puud</button><button class="btn" id="reload">Värskenda andmed</button></div>
   <div class="sub" id="dstat" style="margin-top:6px"></div>
- </section>
+ </details>
 
- <section class="card">
-  <h3>Varjud mitmel kellaajal</h3>
-  <div class="grid4"><input id="c0" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c1" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c2" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c3" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"></div>
+ <details class="card" id="dCmp">
+  <summary>🕒 Võrdle kellaaegu <span class="sub">varjud mitmel ajal</span></summary>
+  <div class="grid4" style="margin-top:8px"><input id="c0" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c1" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c2" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"><input id="c3" class="tm24" inputmode="numeric" maxlength="5" placeholder="TT:MM"></div>
   <div class="row" style="margin-top:8px"><button class="btn" id="pday">Päev</button><button class="btn" id="pcw" style="display:none">Call → Wrap</button><button class="btn p" id="cmpgo">Tee võrdlus</button></div>
   <div id="cmp" style="margin-top:10px"></div>
   <div class="row" id="cmpact" style="margin-top:8px;display:none"><button class="btn p" id="csave">Salvesta recce kogumikku</button><button class="btn" id="cshare">Jaga / lae alla</button></div>
-  <div class="row" style="margin-top:8px"><button class="btn" id="ssave">Salvesta praegune vaade</button></div>
- </section>
+ </details>
 
- <section class="card">
-  <h3>Salvestatud varjukaardid <span class="sub" id="galn"></span></h3>
-  <div id="gal"></div>
+ <details class="card" id="dGal">
+  <summary>💾 Salvestatud <span class="sub" id="galn"></span></summary>
+  <div class="row" style="margin-top:8px"><button class="btn" id="ssave">Salvesta praegune vaade</button></div>
+  <div id="gal" style="margin-top:8px"></div>
   <div class="sub" id="galh">Salvestatud pildid on selles seadmes. Recce lehele lisamisel loeb leht need siit.</div>
- </section>
+ </details>
+
  <div class="sub" style="margin:0 12px 12px">Eestis: hooned ja puud Maa- ja Ruumiameti ETAK andmebaasist (hoonete kõrgused andmebaasist, metsade ja puude kõrgus on tüüpväärtus). Mujal © OpenStreetMap. Puuduva kõrgusega hoonetel on oletatud kõrgus ja maapind on tasane. Satelliit: Esri. Tulemus on abivahend, mitte mõõtmine. Kontrolli kohapeal.</div>
 </main>
 
@@ -699,6 +703,7 @@ $('#back').onclick=()=>{if(history.length>1&&document.referrer)history.back();el
  else locateUI('');
 })();
 </script>
+<script>try{[['selbox','dTree'],['cmp','dCmp']].forEach(function(x){var e=document.getElementById(x[0]),d=document.getElementById(x[1]);if(e&&d)new MutationObserver(function(){if(e.childNodes.length)d.open=true}).observe(e,{childList:true})})}catch(e){}</script>
 </body>
 </html>
 <!-- redeploy -->
