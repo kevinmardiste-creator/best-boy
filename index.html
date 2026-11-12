@@ -264,7 +264,7 @@ function lunchEdit(){dayEdit('lunch')}
 function dayEdit(k){lunchEd=lunchEd==k?false:k;r();if(lunchEd)setTimeout(()=>{const e=document.getElementById('lpan');e&&e.scrollIntoView({block:'center',behavior:'smooth'})},60)}
 function lunchSet(f,v){const p=P();if(!/^\d{1,2}:\d{2}$/.test(v))return;v=tf(tm(v));const k=p.lk&&p.lk.d==p.date?p.lk:null;if(f=='s'){p.lunch=v;if(k){const d=tm(v)-tm(k.s);k.s=v;if(k.e)k.e=tf(tm(k.e)+d)}}else if(k)k.e=v;save();r()}
 function lunchPanel(p){if(lunchEd!='lunch'||!canDay())return '';const k=p.lk&&p.lk.d==p.date?p.lk:null,L=+p.lunchLen||60,td=p.date==workDay(),s0=k?k.s:p.lunch,en=k?(k.e||tf(tm(k.s)+L)):(p.lunch?tf(tm(p.lunch)+L):'');
- return `<div class="card space-y-2" id="lpan"><div class="flex gap-3"><label class="sub flex-1">Algus${inp('time',s0,"lunchSet('s',this.value)")}</label><label class="sub flex-1">Lõpp${k?inp('time',en,"lunchSet('e',this.value)"):`<div class="font-bold text-xl mt-1">${esc(en||'–')}</div>`}</label></div><div class="sub">Lõuna kestab ${L} min ja lõpeb ise, siis hakkab wrapi loendus.</div><div class="flex gap-2">${td&&!k?`<button class="btn p flex-1" onclick="lunchEd=false;lunchStart()">Algas praegu</button>`:''}${k?`<button class="btn flex-1" onclick="lunchEd=false;lunchEnd()">Lõpeta praegu</button><button class="btn" onclick="lunchEd=false;lunchClr()">Tühista</button>`:''}<button class="btn" onclick="lunchEdit()">Valmis</button></div></div>`}
+ return `<div class="card space-y-2" id="lpan"><div class="flex gap-3"><label class="sub flex-1">Algus${inp('time',s0,"lunchSet('s',this.value)")}</label><label class="sub flex-1">Lõpp${k?inp('time',en,"lunchSet('e',this.value)"):`<div class="font-bold text-xl mt-1">${esc(en||'–')}</div>`}</label></div><div class="flex gap-2">${td&&!k?`<button class="btn p flex-1" onclick="lunchEd=false;lunchStart()">Algas praegu</button>`:''}${k?`<button class="btn flex-1" onclick="lunchEd=false;lunchEnd()">Lõpeta praegu</button><button class="btn" onclick="lunchEd=false;lunchClr()">Tühista</button>`:''}<button class="btn" onclick="lunchEdit()">Valmis</button></div></div>`}
 function lunchStart(){const p=P(),t=nowHM();p.lk={d:p.date,s:t,e:''};p.lunch=t;save();r()}
 function lunchEnd(){const p=P();if(p.lk&&p.lk.d==p.date){p.lk.e=nowHM();save();r()}}
 function lunchClr(){const p=P();p.lk=null;save();r()}
@@ -417,7 +417,8 @@ function vCal(){return '';
 function vProj(p){
  return `<div class="card space-y-2"><b>Projektid</b><div class="flex gap-2"><input id="np" placeholder="Uue projekti nimi"><button class="btn p" onclick="addProj()">+</button></div>
  
- <label class="sub">Praeguse projekti nimi${inp('text',p.name,"upd('name',this.value)")}</label></div>
+ <label class="sub">Praeguse projekti nimi${inp('text',p.name,"upd('name',this.value)")}</label>
+ <label class="sub">Lõuna pikkus (min)${inp('number',p.lunchLen||60,"P().lunchLen=Math.max(0,+this.value||0);save()",'step="5" min="0"')}</label></div>
  <div class="card space-y-2"><b>Töötingimused (selle projekti)</b><div class="sub">Lülita sisse/välja ja muuda väärtusi. Ainult ajareeglid, summasid ei kuvata.</div>
  ${p.rules.map(x=>`<div class="flex items-center gap-2 py-1 border-t border-slate-600"><input type="checkbox" ${x.on?'checked':''} onchange="ru('${x.id}','on',this.checked)"><span class="flex-1">${esc(x.label)}</span>
   ${x.t=='note'?`<button class="btn" onclick="P().rules=P().rules.filter(y=>y.id!='${x.id}');save();r()">✕</button>`:inp(x.t=='night'?'time':'number',x.val,`ru('${x.id}','val',this.value)`,'class="!w-24"')}</div>`).join('')}
