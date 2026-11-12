@@ -1116,6 +1116,7 @@ const SH={un:[],rem:{},got:{},last:{},ready:0,t:null,busy:0,ap:null,mig:0};
 const tmMe=()=>(SY.email||'').toLowerCase(),tmNm=n=>String(n||'').trim().toLowerCase(),tmSame=(a,b)=>{a=tmNm(a);b=tmNm(b);if(!a||!b)return false;if(a==b)return true;const x=a.split(/\s+/),y=b.split(/\s+/);return x.length>1&&y.length>1&&x[0]==y[0]&&x[x.length-1]==y[y.length-1]},tmByName=n=>tmNm(n)&&TM.list.find(x=>tmSame(x.name,n));
 function tsL(p){const out=[],me=tmMe();Object.keys(p.cd||{}).forEach(d=>(p.cd[d]||[]).forEach(c=>{if(!c||!c.id)return;const mb=tmByName(c.name);if(!mb)return;if(!shMgr()&&mb.email!=me)return;out.push({k:d,e:mb.email,c})}));return out}
 function addMine(){const p=P(),mb=TM.list.find(x=>x.email==tmMe());if(!mb||!mb.name)return;p.crew.push({id:uid(),name:mb.name,role:ROLES[3]||'',call:p.call||'',wrap:p.wrap||'',act:'',s:1});save();r()}
+function chip(t,c){return `<span class="text-xs font-bold rounded-full px-2 py-0.5" style="background:${c};color:#0f172a">${t}</span>`}
 function vMine(p){const mb=TM.list.find(x=>x.email==(TM.vm||tmMe()))||{},nm=tmNm(mb.name),mine=L=>(L||[]).filter(c=>c&&tmSame(c.name,mb.name));
  if(!mb.email&&TM.deny)return dayBar(p)+'<div class="card org">Sul pole sellele äppile ligipääsu. Palu adminil lisada sinu e-post meeskonda.</div>';
  if(!nm)return dayBar(p)+'<div class="card org">Sinu nime pole meeskonna nimekirjas. Palu adminil lisada sinu nimi, siis seotakse töötunnid sinuga.</div>';
