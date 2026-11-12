@@ -141,7 +141,8 @@ details.more{background:#1e293b;border:1px solid #334155;border-radius:1rem;padd
 .rdr .rl{font-variant-numeric:tabular-nums;font-weight:600;color:#f1f5f9}.rdr .ra{padding:0 .8rem .55rem;font-size:.6rem;color:#64748b;background:#16202e}
 .wxrad{display:block;text-align:center;margin-top:.6rem;padding:.7rem;border-radius:.85rem;background:#1e3a5f;color:#bfdbfe;font-weight:700;text-decoration:none}.wxg{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-top:.7rem}@media(min-width:560px){.wxg{grid-template-columns:repeat(4,1fr)}}
 .wxk{background:rgba(15,23,42,.6);border:1px solid #334155;border-radius:.9rem;padding:.6rem .75rem}.wxk.wxw{border-color:#f59e0b}
-.wxgm{flex:1;margin:0 .6rem;gap:.35rem;min-width:0;align-self:center}@media(min-width:560px){.wxgm{grid-template-columns:repeat(2,1fr)}}.wxgm .wxk{padding:.3rem .5rem;border-radius:.7rem}.wxgm .wxk small{font-size:.56rem}.wxgm .wxk b{font-size:1.05rem}.wxgm .wxk i{font-size:.62rem;margin-left:.15rem}
+.wxgm{flex:1;margin:0 .6rem;gap:.35rem;min-width:0;align-self:center}
+.wxlf{display:contents}.wxlf svg{order:3}@media(max-width:640px){.wxm{flex-direction:column;align-items:stretch;gap:.7rem}.wxlf{display:flex;align-items:center;justify-content:space-between;gap:.6rem}.wxlf svg{order:0;margin-right:.2rem;width:112px;height:112px}.wxm .wxgm{margin:0;grid-template-columns:repeat(4,1fr)}.wxm .wxk b{font-size:1.1rem}}@media(min-width:560px){.wxgm{grid-template-columns:repeat(2,1fr)}}.wxgm .wxk{padding:.3rem .5rem;border-radius:.7rem}.wxgm .wxk small{font-size:.56rem}.wxgm .wxk b{font-size:1.05rem}.wxgm .wxk i{font-size:.62rem;margin-left:.15rem}
 .wxk small{display:block;color:#94a3b8;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600}.wxk b{font-size:1.55rem;font-weight:800;font-variant-numeric:tabular-nums}.wxk i{font-style:normal;font-size:.8rem;color:#94a3b8;margin-left:.2rem}
 .wxc{background:rgba(15,23,42,.6);border:1px solid #334155;border-radius:.9rem;padding:.5rem .4rem .3rem;margin-top:.7rem}
 .wxl{display:flex;gap:1rem;justify-content:center;font-size:.72rem;color:#94a3b8;padding:.1rem 0 .3rem}.wxl i{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
@@ -726,7 +727,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  d=W.at&&new Date(W.at);
  e.innerHTML=`<div class="wx ${cls} ${warn?'warn':''}">
  ${head(d&&!isNaN(d)?'Uuendatud '+tf(d.getHours()*60+d.getMinutes()):'Live',warn?'background:#7c4a03;color:#fde68a':'')}
- <div class="wxr" style="margin-top:.5rem"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div><div class="wxg wxgm">${tile('Tuul',ws,'m/s',ws>=8,1)}${tile('Puhang',gs,'m/s',gs>=11,1)}${tile('Tundub',fl,'°')}${tile(inw?'Sadu võttel':'Sadu 12 h',rmax,'%',rmax>=50)}</div>${wxIco(ph,night)}</div>
+ <div class="wxr wxm" style="margin-top:.5rem"><div class="wxlf"><div><div class="wxt">${tNow==null?'–':Math.round(tNow)}<span class="wxd">°</span></div><div class="wxph">${esc(ph||'Ilmaandmed')}</div></div>${wxIco(ph,night)}</div><div class="wxg wxgm">${tile('Tuul',ws,'m/s',ws>=8,1)}${tile('Puhang',gs,'m/s',gs>=11,1)}${tile('Tundub',fl,'°')}${tile(inw?'Sadu võttel':'Sadu 12 h',rmax,'%',rmax>=50)}</div></div>
  <div class="wxv" style="background:${verdict[0]};color:${verdict[1]}"><span>${verdict[2]}</span><span>${verdict[3]}</span></div>${lw?`<div class="wxv" style="background:#7f1d1d;color:#fecaca;margin-top:.4rem"><span>⚠</span><span>Tõstukid: puhangud ${f1(Math.max(liftNow?gs:0,...lift.map(h=>h.extended.gustsValue/3.6)))} m/s${lift.length?' '+hh(lift):' praegu'} (piir 12,5 m/s)</span></div>`:''}
  <div id="radslot"></div>
  
