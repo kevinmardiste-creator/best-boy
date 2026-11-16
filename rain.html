@@ -193,7 +193,7 @@ const WIND=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','
 const windOf=az=>WIND[Math.round(az/RAD/22.5)%16];
 
 /* ---------- Koordinaadid ---------- */
-let Z=(parseFloat(Q.get('gr'))||420)>1800?16:(parseFloat(Q.get('gr'))||420)>800?17:18,MPP=1,CX=0,CY=0;
+let Z=(parseFloat(Q.get('gr'))||420)>4200?14:(parseFloat(Q.get('gr'))||420)>2600?15:(parseFloat(Q.get('gr'))||420)>1800?16:(parseFloat(Q.get('gr'))||420)>800?17:18,MPP=1,CX=0,CY=0;
 function wpx(lat,lon,z){const n=2**(z||Z)*256,s=Math.sin(lat*RAD);return [(lon+180)/360*n,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]}
 function initGeo(){MPP=156543.03392*Math.cos(LAT*RAD)/2**Z;[CX,CY]=wpx(LAT,LON)}
 function loc(lat,lon){const p=wpx(lat,lon);return [(p[0]-CX)*MPP,-(p[1]-CY)*MPP]}
@@ -203,10 +203,10 @@ function unloc(x,n){const N=2**Z*256,px=CX+x/MPP,py=CY-n/MPP;return [Math.atan(M
 const cv=$('#cv'),stage=$('#stage');
 let renderer,scene,camera,dl,hemi,gGround,gB,gL,gT,gW,gP,sunBall,shadowMat,gridH;
 const cam={az:0,pol:0.8,dist:460,tgt:null};
-const GRQ=Math.max(200,Math.min(4000,parseFloat(Q.get('gr'))||420));let dirty=true,GR=GRQ;
+const GRQ=Math.max(200,Math.min(6000,parseFloat(Q.get('gr'))||420));const LITE=GRQ>2500;let dirty=true,GR=GRQ;
 function initGL(){
  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});
- renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.shadowMap.enabled=!LITE;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1220);
  camera=new THREE.PerspectiveCamera(42,1,2,5000);cam.tgt=new THREE.Vector3();
  hemi=new THREE.HemisphereLight(0xdfe9ff,0x6b6b5a,0.62);scene.add(hemi);
@@ -337,7 +337,7 @@ const DTB='https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/
 let TER=null;
 async function fetchDtm(){
  if(Q.get('ter')==='0'||typeof Lerc==='undefined')return null;
- const [E0,N0]=L3301(LAT,LON),R=GR+80,c0=Math.floor((E0-R-40500)/DT),c1=Math.floor((E0+R-40500)/DT),r0=Math.floor((7017000-N0-R)/DT),r1=Math.floor((7017000-N0+R)/DT),T=new Map(),jobs=[];
+ const [E0,N0]=L3301(LAT,LON),R=Math.min(GR,4200)+80,c0=Math.floor((E0-R-40500)/DT),c1=Math.floor((E0+R-40500)/DT),r0=Math.floor((7017000-N0-R)/DT),r1=Math.floor((7017000-N0+R)/DT),T=new Map(),jobs=[];
  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)jobs.push((async()=>{const k='dtm:'+DLV+'/'+r+'/'+c;let b=await idbGet(k);if(!b){const x=await ft(DTB+DLV+'/'+r+'/'+c,20000);if(!x.ok)return;b=await x.arrayBuffer();idbPut(k,b).catch(()=>{})}const d=Lerc.decode(b);if(d&&d.pixels&&d.pixels[0]&&d.width==257)T.set(r+'/'+c,d.pixels[0])})());
  await Promise.all(jobs);if(!T.size)return null;
  const h=(E,N)=>{const c=Math.floor((E-40500)/DT),r=Math.floor((7017000-N)/DT),a=T.get(r+'/'+c);if(!a)return null;const q=DT/256,fx=(E-40500-c*DT)/q,fy=(7017000-r*DT-N)/q,ix=Math.min(255,Math.max(0,Math.floor(fx))),iy=Math.min(255,Math.max(0,Math.floor(fy))),tx=fx-ix,ty=fy-iy,v=(x,y)=>a[y*257+x],A=v(ix,iy),B=v(ix+1,iy),C=v(ix,iy+1),Dd=v(ix+1,iy+1);if(!(A>-50&&B>-50&&C>-50&&Dd>-50))return null;return (A*(1-tx)+B*tx)*(1-ty)+(C*(1-tx)+Dd*tx)*ty};
@@ -381,7 +381,7 @@ function parseLod2(L){
 function lodMeshes(Lo){return Lo.parts.map(q=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(q.p,3));g.setAttribute('normal',new THREE.BufferAttribute(q.n,3));g.computeBoundingSphere();const m=new THREE.Mesh(g,matL);m.castShadow=true;m.receiveShadow=true;m.frustumCulled=false;return m})}
 /* Maa-ameti taimkate realistlik (LiDAR puud, I3S punktikihid) */
 const VB={k:'https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/okas_pnt_real_2025/SceneServer/layers/0',l:'https://tiles.arcgis.com/tiles/ZYGCYltwz5ExeoGm/arcgis/rest/services/leht_pnt_real_2025/SceneServer/layers/0'};
-let VEGON=Q.get('veg')!=='0',DRC=null;
+let VEGON=Q.get('veg')!=='0'&&!LITE,DRC=null;
 const ldScript=u=>new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=no;document.head.appendChild(e)});
 async function dracoDec(buf){
  if(!DRC){await ldScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js');DRC=new THREE.DRACOLoader();DRC.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/')}
@@ -781,7 +781,7 @@ function play(){const b=$('#rplay');if(R.pl){clearInterval(R.tm);R.pl=0;b.textCo
 function tick(){requestAnimationFrame(tick);if(!R.U)return;if(R.drops){const v=R.dr&&!!R.any&&cam.dist<5200;if(R.drops.visible!==v){R.drops.visible=v;need()}}const live=R.drops&&R.drops.visible;if(live){R.U.uT.value=performance.now()/1000-R.t0;R.U.uS.value=clamp(cam.dist*0.85,420,2600);R.U.uC.value.set(cam.tgt.x,0,cam.tgt.z);dirty=true}}
 function bindUI(){$('#rWl').onchange=e=>{R.wl=e.target.checked;if(R.t)applyT(R.t)};$('#rOn').onchange=e=>{R.on=e.target.checked;R.sl.forEach(s=>s.visible=R.on&&!!R.sh.value);need()};$('#rDr').onchange=e=>{R.dr=e.target.checked;if(R.drops)R.drops.visible=R.dr&&!!R.any;need()};$('#rt').oninput=e=>{if(R.pl)play();applyT(T0+(+e.target.value)*60000)};$('#rplay').onclick=play;$('#rnow').onclick=()=>{if(R.pl)play();applyT(R.fr[Math.max(0,R.nobs-1)].t)};
  $('#rfar').onclick=()=>{cam.az=0;cam.pol=1.2;cam.dist=Math.min(RR*.35,60000);cam.tgt.set(0,0,0);applyCam()};$('#rnear').onclick=()=>{cam.az=0;cam.pol=1.15;cam.dist=260;cam.tgt.set(0,0,0);applyCam()}}
-const iv=setInterval(async()=>{if(!(started&&scene&&camera&&cam.tgt))return;clearInterval(iv);camera.far=RR*5+20000;camera.updateProjectionMatrix();{const ac=applyCam;applyCam=function(){camera.near=clamp(cam.dist*0.02,2,3000);camera.updateProjectionMatrix();ac()}}build();base();$('#rfar').textContent='Kaugele ('+Math.round(RR/1000)+' km)';{const s2=document.createElement('select');s2.style.cssText='width:100%;margin-top:8px';[420,800,1200,2000].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='3D ala: ±'+k+' m';if(Math.round(GRQ/100)==Math.round(k/100))o.selected=true;s2.appendChild(o)});s2.onchange=()=>{const u=new URLSearchParams(location.search);u.set('gr',s2.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s2)}{const s=document.createElement('select');s.id='rrad';s.style.cssText='width:100%;margin-top:8px';[20,50,100,200].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='Radari ulatus: ±'+k+' km';if(Math.round(RR/1000)==k)o.selected=true;s.appendChild(o)});s.onchange=()=>{const u=new URLSearchParams(location.search);u.set('r',s.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s)}bindUI();tick();await wind();await load();setInterval(()=>{if(!FAKE){R.G.clear();R.T.clear();load()}},300000)},400);
+const iv=setInterval(async()=>{if(!(started&&scene&&camera&&cam.tgt))return;clearInterval(iv);camera.far=RR*5+20000;camera.updateProjectionMatrix();{const ac=applyCam;applyCam=function(){camera.near=clamp(cam.dist*0.02,2,3000);camera.updateProjectionMatrix();ac()}}build();base();if(LITE)toast('Lai 3D ala: varjud ja puud on väljas. Esimene laadimine võib kesta mitu minutit.',8000);$('#rfar').textContent='Kaugele ('+Math.round(RR/1000)+' km)';{const s2=document.createElement('select');s2.style.cssText='width:100%;margin-top:8px';[420,800,1200,2000,3500,6000].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='3D ala: ±'+k+' m'+(k>2500?' (lai: varjude ja puudeta)':'');if(Math.round(GRQ/100)==Math.round(k/100))o.selected=true;s2.appendChild(o)});s2.onchange=()=>{const u=new URLSearchParams(location.search);u.set('gr',s2.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s2)}{const s=document.createElement('select');s.id='rrad';s.style.cssText='width:100%;margin-top:8px';[20,50,100,200].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='Radari ulatus: ±'+k+' km';if(Math.round(RR/1000)==k)o.selected=true;s.appendChild(o)});s.onchange=()=>{const u=new URLSearchParams(location.search);u.set('r',s.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s)}bindUI();tick();await wind();await load();setInterval(()=>{if(!FAKE){R.G.clear();R.T.clear();load()}},300000)},400);
 window.RAINDBG=R;
 })();
 
