@@ -193,7 +193,7 @@ const WIND=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','
 const windOf=az=>WIND[Math.round(az/RAD/22.5)%16];
 
 /* ---------- Koordinaadid ---------- */
-let Z=(parseFloat(Q.get('gr'))||420)>4200?14:(parseFloat(Q.get('gr'))||420)>2600?15:(parseFloat(Q.get('gr'))||420)>1800?16:(parseFloat(Q.get('gr'))||420)>800?17:18,MPP=1,CX=0,CY=0;
+let Z=(parseFloat(Q.get('gr'))||420)>12000?12:(parseFloat(Q.get('gr'))||420)>7000?13:(parseFloat(Q.get('gr'))||420)>4200?14:(parseFloat(Q.get('gr'))||420)>2600?15:(parseFloat(Q.get('gr'))||420)>1800?16:(parseFloat(Q.get('gr'))||420)>800?17:18,MPP=1,CX=0,CY=0;
 function wpx(lat,lon,z){const n=2**(z||Z)*256,s=Math.sin(lat*RAD);return [(lon+180)/360*n,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]}
 function initGeo(){MPP=156543.03392*Math.cos(LAT*RAD)/2**Z;[CX,CY]=wpx(LAT,LON)}
 function loc(lat,lon){const p=wpx(lat,lon);return [(p[0]-CX)*MPP,-(p[1]-CY)*MPP]}
@@ -203,7 +203,7 @@ function unloc(x,n){const N=2**Z*256,px=CX+x/MPP,py=CY-n/MPP;return [Math.atan(M
 const cv=$('#cv'),stage=$('#stage');
 let renderer,scene,camera,dl,hemi,gGround,gB,gL,gT,gW,gP,sunBall,shadowMat,gridH;
 const cam={az:0,pol:0.8,dist:460,tgt:null};
-const GRQ=Math.max(200,Math.min(6000,parseFloat(Q.get('gr'))||420));const LITE=GRQ>2500;let dirty=true,GR=GRQ;
+const GRQ=Math.max(200,Math.min(15000,parseFloat(Q.get('gr'))||420));const LITE=GRQ>2500;let dirty=true,GR=GRQ;
 function initGL(){
  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});
  renderer.shadowMap.enabled=!LITE;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -354,7 +354,7 @@ let LODON=Q.get('lod')!=='0';
 const matL=new THREE.MeshLambertMaterial({color:0xd8d0c0,side:THREE.DoubleSide});
 function inObbP(o,x,y,p){const [qx,qy,qz,qw]=o.quaternion,dx=x-o.center[0],dy=y-o.center[1],lx=(1-2*(qy*qy+qz*qz))*dx+2*(qx*qy+qz*qw)*dy,ly=2*(qx*qy-qz*qw)*dx+(1-2*(qx*qx+qz*qz))*dy;return Math.abs(lx)<=o.halfSize[0]+p&&Math.abs(ly)<=o.halfSize[1]+p}
 async function fetchLod2(){
- const [E0,N0]=L3301(LAT,LON),R=GR+40;
+ const [E0,N0]=L3301(LAT,LON),R=Math.min(GR,4000)+40;
  const pg={},page=i=>pg[i]||(pg[i]=(async()=>{const k='lodp:'+i,c=await idbGet(k);if(c)return c;const r=await ft(LB+'/nodepages/'+i+'?f=json',20000);if(!r.ok)throw new Error('I3S '+r.status);const n=(await r.json()).nodes;idbPut(k,n).catch(()=>{});return n})()),nd=async i=>(await page(Math.floor(i/64)))[i%64];
  const leaves=[];let lvl=[0];
  while(lvl.length){const ns=await Promise.all(lvl.map(nd));lvl=[];ns.forEach(n=>{if(!n||!inObbP(n.obb,E0,N0,R))return;if(n.children&&n.children.length)lvl.push(...n.children);else if(n.mesh)leaves.push(n)})}
@@ -362,7 +362,7 @@ async function fetchLod2(){
  return {E0,N0,R,parts};
 }
 function parseLod2(L){
- const lim=GR+30,P=[];let nb=0,zs=[];
+ const lim=Math.min(GR,4000)+30,P=[];let nb=0,zs=[];
  L.parts.forEach(pt=>{
   const b=pt.b,dv=new DataView(b),vc=dv.getUint32(0,true),fc=dv.getUint32(4,true);
   const pos=new Float32Array(b,8,vc*3),nor=new Float32Array(b,8+vc*12,vc*3),fr=new Uint32Array(b,8+vc*24+vc*8+vc*4+fc*8,fc*2);
@@ -781,7 +781,56 @@ function play(){const b=$('#rplay');if(R.pl){clearInterval(R.tm);R.pl=0;b.textCo
 function tick(){requestAnimationFrame(tick);if(!R.U)return;if(R.drops){const v=R.dr&&!!R.any&&cam.dist<5200;if(R.drops.visible!==v){R.drops.visible=v;need()}}const live=R.drops&&R.drops.visible;if(live){R.U.uT.value=performance.now()/1000-R.t0;R.U.uS.value=clamp(cam.dist*0.85,420,2600);R.U.uC.value.set(cam.tgt.x,0,cam.tgt.z);dirty=true}}
 function bindUI(){$('#rWl').onchange=e=>{R.wl=e.target.checked;if(R.t)applyT(R.t)};$('#rOn').onchange=e=>{R.on=e.target.checked;R.sl.forEach(s=>s.visible=R.on&&!!R.sh.value);need()};$('#rDr').onchange=e=>{R.dr=e.target.checked;if(R.drops)R.drops.visible=R.dr&&!!R.any;need()};$('#rt').oninput=e=>{if(R.pl)play();applyT(T0+(+e.target.value)*60000)};$('#rplay').onclick=play;$('#rnow').onclick=()=>{if(R.pl)play();applyT(R.fr[Math.max(0,R.nobs-1)].t)};
  $('#rfar').onclick=()=>{cam.az=0;cam.pol=1.2;cam.dist=Math.min(RR*.35,60000);cam.tgt.set(0,0,0);applyCam()};$('#rnear').onclick=()=>{cam.az=0;cam.pol=1.15;cam.dist=260;cam.tgt.set(0,0,0);applyCam()}}
-const iv=setInterval(async()=>{if(!(started&&scene&&camera&&cam.tgt))return;clearInterval(iv);camera.far=RR*5+20000;camera.updateProjectionMatrix();{const ac=applyCam;applyCam=function(){camera.near=clamp(cam.dist*0.02,2,3000);camera.updateProjectionMatrix();ac()}}build();base();if(LITE)toast('Lai 3D ala: varjud ja puud on väljas. Esimene laadimine võib kesta mitu minutit.',8000);$('#rfar').textContent='Kaugele ('+Math.round(RR/1000)+' km)';{const s2=document.createElement('select');s2.style.cssText='width:100%;margin-top:8px';[420,800,1200,2000,3500,6000].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='3D ala: ±'+k+' m'+(k>2500?' (lai: varjude ja puudeta)':'');if(Math.round(GRQ/100)==Math.round(k/100))o.selected=true;s2.appendChild(o)});s2.onchange=()=>{const u=new URLSearchParams(location.search);u.set('gr',s2.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s2)}{const s=document.createElement('select');s.id='rrad';s.style.cssText='width:100%;margin-top:8px';[20,50,100,200].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='Radari ulatus: ±'+k+' km';if(Math.round(RR/1000)==k)o.selected=true;s.appendChild(o)});s.onchange=()=>{const u=new URLSearchParams(location.search);u.set('r',s.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s)}bindUI();tick();await wind();await load();setInterval(()=>{if(!FAKE){R.G.clear();R.T.clear();load()}},300000)},400);
+async function farBld(){try{
+ const DET=3900,OUT=GRQ+150;
+ await ldScript('https://unpkg.com/pbf@3.2.1/dist/pbf.js');
+ const meta=await ft('https://tiles.openfreemap.org/planet',12000).then(r=>r.json()),tpl=meta.tiles[0];
+ function rdVal(tag,o,pb){if(tag===1)o.v=pb.readString();else if(tag===2)o.v=pb.readFloat();else if(tag===3)o.v=pb.readDouble();else if(tag===4)o.v=pb.readVarint64();else if(tag===5)o.v=pb.readVarint();else if(tag===6)o.v=pb.readSVarint();else if(tag===7)o.v=pb.readBoolean()}
+ function rdFeat(tag,f,pb){if(tag===2){const e=pb.readVarint()+pb.pos;while(pb.pos<e)f.tags.push(pb.readVarint())}else if(tag===3)f.type=pb.readVarint();else if(tag===4){f.g=[];const e=pb.readVarint()+pb.pos;while(pb.pos<e)f.g.push(pb.readVarint())}}
+ function rdLayer(tag,l,pb){if(tag===1)l.name=pb.readString();else if(tag===5)l.extent=pb.readVarint();else if(tag===2)l.features.push(pb.readMessage(rdFeat,{tags:[]}));else if(tag===3)l.keys.push(pb.readString());else if(tag===4)l.values.push(pb.readMessage(rdVal,{}).v)}
+ function rdTile(buf){const layers={};new Pbf(buf).readFields(function(tag,ls,pb){if(tag===3){const l=pb.readMessage(rdLayer,{features:[],keys:[],values:[],extent:4096});if(l.name)layers[l.name]=l}},layers);return layers}
+ const Z3=14,kk=Math.pow(2,Z3-Z),px0=CX*kk,py0=CY*kk,rpx=GRQ/MPP*kk,tx0=Math.floor((px0-rpx)/256),tx1=Math.floor((px0+rpx)/256),ty0=Math.floor((py0-rpx)/256),ty1=Math.floor((py0+rpx)/256);
+ const mat=new THREE.MeshPhongMaterial({color:0xb7bac4,shininess:0,side:THREE.DoubleSide}),gFar=new THREE.Group();scene.add(gFar);window.GFAR=gFar;
+ const jobs=[];for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){
+  const wx0=((tx*256)-px0)/kk*MPP,wx1=(((tx+1)*256)-px0)/kk*MPP,wz0=((ty*256)-py0)/kk*MPP,wz1=(((ty+1)*256)-py0)/kk*MPP;
+  if(wx0>-DET&&wx1<DET&&wz0>-DET&&wz1<DET)continue;
+  if(wx1<-OUT||wx0>OUT||wz1<-OUT||wz0>OUT)continue;
+  jobs.push([tx,ty])}
+ toast('Laen kaugemaid hooneid ('+jobs.length+' plokki)…',5000);
+ for(let o=0;o<jobs.length;o+=8){
+  await Promise.all(jobs.slice(o,o+8).map(async function(j){const tx=j[0],ty=j[1];try{
+   const key='vt14:'+tx+'/'+ty;let b=await idbGet(key);
+   if(!b){const r=await ft(tpl.replace('{z}',Z3).replace('{x}',tx).replace('{y}',ty),20000);if(!r.ok)return;b=await r.arrayBuffer();idbPut(key,b).catch(function(){})}
+   const L=rdTile(b),bl=L.building;if(!bl||!bl.features.length)return;
+   const HK=bl.keys.indexOf('render_height'),HD=bl.keys.indexOf('hide_3d'),ex=bl.extent||4096,sc=256/ex,pos=[],nrm=[];
+   for(const f of bl.features){if(f.type!=3||!f.g)continue;
+    let h=null,hide=false;for(let i2=0;i2<f.tags.length;i2+=2){if(f.tags[i2]===HK)h=bl.values[f.tags[i2+1]];if(f.tags[i2]===HD&&bl.values[f.tags[i2+1]])hide=true}
+    if(hide)continue;h=(h==null||h<=0)?8:Math.max(2.5,Math.min(h,180));
+    const rings=[];let i3=0,x=0,y=0,cur=null;
+    while(i3<f.g.length){const c=f.g[i3++],cmd=c&7,n2=c>>3;
+     if(cmd==1){for(let q=0;q<n2;q++){x+=((f.g[i3]>>1)^(-(f.g[i3]&1)));i3++;y+=((f.g[i3]>>1)^(-(f.g[i3]&1)));i3++;cur=[[x,y]];rings.push(cur)}}
+     else if(cmd==2){for(let q=0;q<n2;q++){x+=((f.g[i3]>>1)^(-(f.g[i3]&1)));i3++;y+=((f.g[i3]>>1)^(-(f.g[i3]&1)));i3++;cur.push([x,y])}}}
+    const W=rings.map(function(rg){return rg.map(function(p){const gx=tx*256+p[0]*sc,gy=ty*256+p[1]*sc;return [(gx-px0)/kk*MPP,(gy-py0)/kk*MPP]})});
+    const area=function(rg){let a=0;for(let q=0,m=rg.length,j2=m-1;q<m;j2=q++)a+=(rg[j2][0]*rg[q][1]-rg[q][0]*rg[j2][1]);return a/2};
+    const polys=[];for(const rg of W){if(rg.length<3)continue;const a=area(rg);if(a>0)polys.push({o:rg,hh:[]});else if(polys.length)polys[polys.length-1].hh.push(rg)}
+    for(const pl of polys){
+     const c0=pl.o[0],mx=Math.max(Math.abs(c0[0]),Math.abs(c0[1]));
+     if(mx<DET||mx>OUT)continue;
+     if(mx>8000&&h<4.5)continue;
+     const wall=function(rg){for(let q=0;q<rg.length;q++){const a2=rg[q],b2=rg[(q+1)%rg.length],dx=b2[0]-a2[0],dz=b2[1]-a2[1],ln=Math.hypot(dx,dz);if(ln<0.01)continue;const nx=dz/ln,nz=-dx/ln;
+      pos.push(a2[0],0,a2[1],b2[0],0,b2[1],b2[0],h,b2[1],a2[0],0,a2[1],b2[0],h,b2[1],a2[0],h,a2[1]);
+      for(let q2=0;q2<6;q2++)nrm.push(nx,0,nz)}};
+     wall(pl.o);pl.hh.forEach(wall);
+     try{const vo=pl.o.map(function(p){return new THREE.Vector2(p[0],p[1])}),vh=pl.hh.map(function(hr){return hr.map(function(p){return new THREE.Vector2(p[0],p[1])})});
+      const tr=THREE.ShapeUtils.triangulateShape(vo,vh),all=vo.concat.apply(vo,vh);
+      for(const t3 of tr)for(const vi of t3){const v4=all[vi];pos.push(v4.x,h,v4.y);nrm.push(0,1,0)}}catch(e2){}
+    }}
+   if(pos.length){const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));g2.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(nrm),3));g2.computeBoundingSphere();gFar.add(new THREE.Mesh(g2,mat))}
+  }catch(e3){}}));
+  if(o%48==0)need()}
+ need();toast('Kauged hooned laetud.',2500);
+}catch(e){toast('Kaugemate hoonete laadimine ebaõnnestus')}}
+const iv=setInterval(async()=>{if(!(started&&scene&&camera&&cam.tgt))return;clearInterval(iv);camera.far=RR*5+20000;camera.updateProjectionMatrix();{const ac=applyCam;applyCam=function(){camera.near=clamp(cam.dist*0.02,2,3000);camera.updateProjectionMatrix();ac()}}build();base();if(GRQ>4200)farBld();if(LITE)toast('Lai 3D ala: varjud ja puud on väljas. Esimene laadimine võib kesta mitu minutit.',8000);$('#rfar').textContent='Kaugele ('+Math.round(RR/1000)+' km)';{const s2=document.createElement('select');s2.style.cssText='width:100%;margin-top:8px';[420,800,1200,2000,3500,6000,10000,15000].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='3D ala: ±'+(k>=10000?(k/1000)+' km (XL, kauged majad lihtsustatud)':k+' m'+(k>2500?' (lai: varjude ja puudeta)':''));if(Math.round(GRQ/100)==Math.round(k/100))o.selected=true;s2.appendChild(o)});s2.onchange=()=>{const u=new URLSearchParams(location.search);u.set('gr',s2.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s2)}{const s=document.createElement('select');s.id='rrad';s.style.cssText='width:100%;margin-top:8px';[20,50,100,200].forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent='Radari ulatus: ±'+k+' km';if(Math.round(RR/1000)==k)o.selected=true;s.appendChild(o)});s.onchange=()=>{const u=new URLSearchParams(location.search);u.set('r',s.value);location.href=location.pathname+'?'+u.toString()};$('#dRain').appendChild(s)}bindUI();tick();await wind();await load();setInterval(()=>{if(!FAKE){R.G.clear();R.T.clear();load()}},300000)},400);
 window.RAINDBG=R;
 })();
 
