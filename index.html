@@ -1176,6 +1176,7 @@ function shApply(force){try{if(!SH.ready)return;
  if(!SH.bk){SH.bk=1;syBackup('enne ühiste andmete laadimist')}
  const snap=()=>JSON.stringify([S.cal,S.projects.map(p=>[p.id,p.name,p.glists,p.gear,p.loans,p.dd,p.cd,p.sheets,p.roles])]),before=snap(),byO=(x,y)=>x.o-y.o;
  S.cal=[...R.calendar.values()].sort(byO).map(x=>x.item);
+ S.projects=S.projects.filter(p=>R.projects.has(p.id)||!(/^Projekt \d*$/i.test(p.name||'')&&!(p.sheets||[]).length&&!Object.keys(p.dd||{}).length&&!Object.values(p.cd||{}).some(a=>a&&a.length)&&!(p.loans||[]).length&&!Object.keys(p.glists||{}).length&&!(p.gear||[]).some(g=>g.src)));
  R.projects.forEach((x,id)=>{let p=S.projects.find(q=>q.id==id);if(!p){p=newP(x.item.name||'Projekt');p.id=id;S.projects.push(p)}p.name=x.item.name||p.name;p.glists=x.item.glists||{};
   if(x.item.roles)p.roles=x.item.roles;
   if(x.item.v>=2){const dd={};R.pdays.forEach(q=>{if(q.pid==id)dd[q.k]=q.item});p.dd=dd;p.sheets=[...R.psheets.values()].filter(q=>q.pid==id).sort(byO).map(q=>q.item);p.cd=p.cd||{};{const cd={};if(R.pcrew)R.pcrew.forEach(q=>{if(q.pid==id)cd[q.k]=q.item});R.tsheets.forEach(q=>{if(q.pid!=id)return;const L=cd[q.k]=cd[q.k]||[],i=L.findIndex(c=>c&&c.id==q.item.id);if(i>=0)L[i]=Object.assign({},L[i],q.item);else if(q.item.s||!R.pcrew)L.push(q.item)});Object.keys(p.cd).forEach(d=>{if(!cd[d])cd[d]=[]});p.cd=cd}if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[];if(p.dd[p.date]){loadDay(p);p.loc=p.dd[p.date].loc||''}}
