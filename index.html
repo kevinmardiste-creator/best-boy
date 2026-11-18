@@ -1418,6 +1418,28 @@ Object.assign(DS2,{
 });
 function dur(c){return spanM(c)+DS2.btOf(c)}
 {const _v=vCrew;vCrew=function(p){return DS2.btCard(p)+_v(p)}}
+Object.assign(DS2,{
+ secs(){const o={},J=x=>hsh(JSON.stringify(x));o.cal=J(S.cal||[]);S.projects.forEach(p=>{const k='p|'+p.id+'|';o[k+'meta']=J([p.name,p.glists||{},p.roles||{},p.recce||null]);o[k+'gear']=J(p.gear||[]);o[k+'loans']=J(p.loans||[]);o[k+'sheets']=J(p.sheets||[]);Object.keys(p.dd||{}).forEach(d=>o[k+'dd|'+d]=J(p.dd[d]));Object.keys(p.cd||{}).forEach(d=>o[k+'cd|'+d]=J(p.cd[d]||[]))});return o},
+ secVal(k){if(k=='cal')return S.cal||[];const [,id,t,d]=k.split('|'),p=S.projects.find(q=>q.id==id);if(!p)return undefined;if(t=='meta')return {name:p.name,glists:p.glists||{},roles:p.roles||{},recce:p.recce||null};if(t=='dd')return p.dd&&p.dd[d];if(t=='cd')return p.cd&&p.cd[d];return p[t]||[]},
+ pjGet(){try{return JSON.parse(localStorage.getItem('bbpend')||'{}')}catch(e){return {}}},
+ pjRec(){if(typeof SH=='undefined'||SH.ready)return;if(!DS2.sg){DS2.sg=DS2.secs();return}const cur=DS2.secs();const J=DS2.pjGet();let ch=0;
+  Object.keys(cur).forEach(k=>{if(cur[k]!==DS2.sg[k]){const v=DS2.secVal(k);J[k]={v:v===undefined?null:JSON.parse(JSON.stringify(v)),t:Date.now()};ch=1}else if(J[k]){delete J[k];ch=1}});
+  Object.keys(DS2.sg).forEach(k=>{if(!(k in cur)){J[k]={del:1,t:Date.now()};ch=1}});
+  if(ch)try{localStorage.setItem('bbpend',JSON.stringify(J))}catch(e){}},
+ pjApply(){const J=DS2.pjGet(),ks=Object.keys(J);if(!ks.length)return;const mg=(R,L)=>{const m=new Map((R||[]).map(x=>[x&&x.id,x]));const o=(L||[]).slice();(R||[]).forEach(x=>{if(!x||!x.id||!(L||[]).some(y=>y&&y.id==x.id))o.push(x)});return o};
+  ks.forEach(k=>{const e=J[k];try{if(k=='cal'){if(!e.del)S.cal=mg(S.cal,e.v);return}const [,id,t,d]=k.split('|'),p=S.projects.find(q=>q.id==id);if(!p)return;
+   if(t=='meta'){if(e.v){p.name=e.v.name||p.name;p.glists=e.v.glists||{};p.roles=e.v.roles||{};p.recce=e.v.recce||p.recce||null}}
+   else if(t=='dd'){p.dd=p.dd||{};if(e.del)delete p.dd[d];else if(e.v)p.dd[d]=e.v}
+   else if(t=='cd'){p.cd=p.cd||{};if(e.del)delete p.cd[d];else p.cd[d]=e.v||[]}
+   else if(!e.del)p[t]=mg(p[t],e.v)}catch(x){}});
+  S.projects.forEach(p=>{p.cd=p.cd||{};if(!p.date)p.date=today();p.crew=p.cd[p.date]=p.cd[p.date]||[];if(p.dd&&p.dd[p.date]){loadDay(p);p.loc=p.dd[p.date].loc||''}});
+  try{localStorage.removeItem('bbpend')}catch(e){}DS2.sg=null;save();syMsg('☁ Ühenduseta tehtud muudatused saadetakse ('+ks.length+')');r()}
+});
+DS2.sg=DS2.secs();
+{const _s=save;save=function(){const x=_s.apply(this,arguments);try{DS2.pjRec()}catch(e){}return x}}
+{const _a=syAdopt;syAdopt=function(){const x=_a.apply(this,arguments);try{if(!SH.ready)DS2.sg=DS2.secs()}catch(e){}return x}}
+{const _st=shStart;shStart=function(){try{DS2.sg=DS2.secs()}catch(e){}return _st.apply(this,arguments)}}
+{const _sa=shApply;shApply=function(){const b=SH.last,x=_sa.apply(this,arguments);try{if(SH.last!==b)DS2.pjApply()}catch(e){}return x}}
 {const _r=r;r=function(){const x=_r.apply(this,arguments);DS2.tick();return x}}
 setInterval(DS2.tick,1000);
 try{r()}catch(e){}
