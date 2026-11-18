@@ -1401,13 +1401,20 @@ function vMH(p){const full=['admin','bestboy'].includes(er())||!er();return (ful
 {const _pl=permLvl;permLvl=function(k){const v=_pl(k);if(k=='mh'&&v=='-'&&er()=='gaffer'&&_pl('contacts')!='-')return 'v';return v}}
 if(!PSEC.some(t=>t[0]=='contacts'))PSEC.push(['contacts','Kontaktid']);
 Object.assign(DS2,{
- btDay(p,d){const e=p&&p.dd&&p.dd[d];if(e&&e.bt!=null&&e.bt!=='')return +e.bt||0;try{const V=csVers(p,d),t=V.length?String(V[V.length-1].t||''):'';const m=t.match(/border\s+of\s+[A-Za-zÕÄÖÜõäöü.]+\s+to\s+[^\n]*?[-–:]\s*(\d{1,3})\s*min/i)||t.match(/linnapiir\w*[^\n]*?(\d{1,3})\s*min/i);return m?+m[1]:0}catch(x){return 0}},
+ btInfo(p,d){const e=(p&&p.dd&&p.dd[d])||{};let t='';try{const V=csVers(p,d);t=V.length?String(V[V.length-1].t||''):''}catch(x){}
+  const m=t.match(/border\s+of\s+[A-Za-zÕÄÖÜõäöü.]+\s+to\s+(?:LOC\s*(\d+)\b)?[^\n]*?[-–:]\s*(\d{1,3})\s*min/i)||t.match(/linnapiir\w*\s+(?:LOC\s*(\d+)\b)?[^\n]*?(\d{1,3})\s*min/i),
+   a=m?+m[2]:0,bl=m&&m[1]?+m[1]:0,mx=Math.max(0,...[...t.matchAll(/\bLOC\s*(\d+)\b/gi)].map(x=>+x[1])),mb=t.match(/LOC\s*\d*\s+to\s+(?:the\s+)?border[^\n]*?[-–:]\s*(\d{1,3})\s*min/i),
+   man=e.bt!=null&&e.bt!=='',x=man?(+e.bt||0):a,st=bl<=1,mv=!!(bl&&mx>bl&&!mb),
+   out=st?x:0,ab=mb?+mb[1]:(mv?0:x),bm=e.btb===0||e.btb===1,back=bm?(e.btb?x:0):ab;
+  return {x,out,back,found:!!m,man,mv,st,bm}},
  cDate(c){let m=DS2._cm;if(!m||!m.has(c)){m=DS2._cm=new WeakMap();S.projects.forEach(p=>{Object.entries(p.cd||{}).forEach(([d,L])=>(L||[]).forEach(x=>m.set(x,{p,d})));(p.crew||[]).forEach(x=>m.set(x,{p,d:p.date}))});if(!m.has(c))m.set(c,null)}return m.get(c)},
- btOf(c){if(!c||c.drv||!c.call)return 0;if(c.bt!=null&&c.bt!=='')return +c.bt||0;const x=DS2.cDate(c);if(!x)return 0;const b=DS2.btDay(x.p,x.d);return b*(x.p.btBack===false?1:2)},
- btSet(v){const p=P();p.dd[p.date]=p.dd[p.date]||{};p.dd[p.date].bt=v===''?'':Math.max(0,Math.round(+v||0));save();r()},
- btBk(on){P().btBack=!!on;save();r()},
- btCard(p){const e=p.dd&&p.dd[p.date],man=e&&e.bt!=null&&e.bt!=='',x=DS2.btDay(p,p.date);if(!x&&!man)return '';const back=p.btBack!==false;
-  return `<div class="card btc"><div class="flex items-start gap-3"><span class="bti">🚗</span><div class="flex-1 min-w-0"><b>Linnast väljas</b><div class="sub">Tööaeg algab linnapiirist${back?' ja lõpeb linnapiiril':''}. Igaühe tööajale lisandub <b>${x*(back?2:1)} min</b>${man?'':' (call sheetist)'}. Juhtide (C-sõitja) aeg sisesta käsitsi.</div></div></div><div class="flex gap-3 items-center flex-wrap"><label class="sub flex items-center gap-2">Linnapiirist<input type="number" inputmode="numeric" min="0" value="${x}" style="max-width:5.5rem" onchange="DS2.btSet(this.value)">min</label><label class="sub flex items-center gap-2"><input type="checkbox" ${back?'checked':''} onchange="DS2.btBk(this.checked)">ka tagasisõit</label>${man?`<button class="btn" onclick="DS2.btSet('')">Call sheeti järgi</button>`:''}</div></div>`}
+ btOf(c){if(!c||c.drv||!c.call)return 0;if(c.bt!=null&&c.bt!=='')return +c.bt||0;const x=DS2.cDate(c);if(!x)return 0;const i=DS2.btInfo(x.p,x.d);return i.out+i.back},
+ btSet(v){const p=P();p.dd[p.date]=p.dd[p.date]||{};p.dd[p.date].bt=v===''?'':Math.max(0,Math.round(+v||0));if(v==='')delete p.dd[p.date].btb;save();r()},
+ btBk(on){const p=P();p.dd[p.date]=p.dd[p.date]||{};p.dd[p.date].btb=on?1:0;save();r()},
+ btCard(p){const i=DS2.btInfo(p,p.date);if(!i.found&&!i.man)return '';
+  const L1=i.out?`Tööaeg algab linnapiirist: <b>+${i.out} min</b>`:'Päev algab linnas – algusesse aega ei lisandu',
+   L2=i.back?`Tagasisõit linnapiirini: <b>+${i.back} min</b>`:(i.mv&&!i.bm?'Company move tagasi linna – tagasisõitu ei arvestata':'Tagasisõitu ei arvestata');
+  return `<div class="card btc"><div class="flex items-start gap-3"><span class="bti">🚗</span><div class="flex-1 min-w-0"><b>Linnast väljas</b><div class="sub">${L1}<br>${L2}<br>Kokku igaühele <b>+${i.out+i.back} min</b>${i.man||i.bm?'':' (call sheetist)'}. Juhtide (C-sõitja) aeg sisesta käsitsi.</div></div></div><div class="flex gap-3 items-center flex-wrap"><label class="sub flex items-center gap-2">Linnapiirist<input type="number" inputmode="numeric" min="0" value="${i.x}" style="max-width:5.5rem" onchange="DS2.btSet(this.value)">min</label><label class="sub flex items-center gap-2"><input type="checkbox" ${i.back?'checked':''} onchange="DS2.btBk(this.checked)">ka tagasisõit</label>${i.man||i.bm?`<button class="btn" onclick="DS2.btSet('')">Call sheeti järgi</button>`:''}</div></div>`}
 });
 function dur(c){return spanM(c)+DS2.btOf(c)}
 {const _v=vCrew;vCrew=function(p){return DS2.btCard(p)+_v(p)}}
