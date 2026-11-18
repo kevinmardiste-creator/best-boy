@@ -499,7 +499,7 @@ function flags(p,c,date){
  const f=[],d=dur(c),a=tm(c.call),end=a+spanM(c);let x;
  if(x=rule(p,'max')){const n=x.val*60;if(d>n+120)f.push(['red',`Ületund ${fm(d-n)} (tööaeg ${fm(d)})`]);else if(d>n)f.push(['org',`Ületund ${fm(d-n)} (tööaeg ${fm(d)})`])}
  if(x=rule(p,'night')){const n=tm(x.val);let o=0;[[0,360],[n,1800]].forEach(([s,e])=>o+=Math.max(0,Math.min(end,e)-Math.max(a,s)));if(o>0)f.push(['org',`Öötöö ${fm(o)} (${x.val}–06:00)`])}
- if((x=rule(p,'lunch'))&&!c.nolunch){const rel=(tm(p.lunch)-a+1440)%1440;if(spanM(c)>x.val*60&&rel>x.val*60)f.push(['org',`Lõuna alles ${fm(rel)} pärast calli (max ${x.val}h)`])}
+ if((x=rule(p,'lunch'))&&!c.nolunch){const dl=date&&date!=p.date&&p.dd&&p.dd[date]?(p.dd[date].lk&&p.dd[date].lk.s)||p.dd[date].lunch:null,rel=(tm(dl||p.lunch)-a+1440)%1440;if(spanM(c)>x.val*60&&rel>x.val*60)f.push(['org',`Lõuna alles ${fm(rel)} pärast calli (max ${x.val}h)`])}
  const pw=c.prev||prevWrap(p,c,date);if((x=rule(p,'rest'))&&pw){const g=(a-tm(pw)+1440)%1440;if(g<x.val*60)f.push(['red',`Puhkeaeg vaid ${fm(g)} (min ${x.val}h)`])}
  const sk=streakOf(p,c,date);if((x=rule(p,'week'))&&sk>x.val)f.push([sk>x.val+1?'red':'org',`${sk}. järjestikune tööpäev`]);
  return f}
