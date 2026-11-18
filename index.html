@@ -481,7 +481,7 @@ function tick(){const e=$('#cd');if(!e)return;const p=P(),l=$('#cdl'),nx=$('#cdn
  if(nr>=16*3600||(p.date==workDay()&&s<cs&&!tl)){const nc=nextCall(p,n);if(l)l.textContent='Call\'ini'+(nc&&nc.lab?' · '+nc.lab:'');e.textContent=hms(nc?nc.sec:(cs-s<0?cs-s+86400:cs-s));e.className='text-4xl font-extrabold text-slate-300 tabular-nums'}
  else if(nr<lu)set('Lõunani',lu-nr,'text-amber-400');
  else if(nr<we)set('Wrapi alguseni',we-nr,'text-amber-400');else set('Wrap on alanud',nr-we,'text-slate-300');
- if(nx){nx.textContent='';const sh=planSheet(p);if(sh&&sh.rows&&sh.rows.length){const k=nowIdx(sh),R=sh.rows;if(k>=0&&R[k+1]){const m=Math.floor(s/60),d=((R[k+1].t%1440)-m+1440)%1440;nx.textContent='Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label+' · '+fm(d)+' pärast'}}}}
+ if(nx){nx.textContent='';const sh=planSheet(p);if(sh&&sh.rows&&sh.rows.length){const k=nowIdx(sh),R=sh.rows;if(k>=0&&R[k+1]){const m=Math.floor(s/60),d=((R[k+1].t%1440)-m+1440)%1440;nx.textContent=typeof DS2!='undefined'&&DS2.nx?DS2.nx(R[k+1],d):'Järgmine: '+tf(R[k+1].t)+' '+R[k+1].label+' · '+fm(d)+' pärast'}}}}
 const tf=m=>{m=(Math.round(m)%1440+1440)%1440;return String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
 let out='';
 const spanM=c=>(tm(c.act||c.wrap)-tm(c.call)+1440)%1440;
@@ -1218,6 +1218,7 @@ const DS2={
  dmy:d=>d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4),
  nowM(){const n=new Date();return n.getHours()*60+n.getMinutes()+n.getSeconds()/60},
  tick(){try{DS2.tl();DS2.bars()}catch(e){}},
+ nx(r,d){const DN={day:'päev',night:'öö',morning:'hommik',evening:'õhtu',dawn:'koidik',dusk:'hämarik',sunrise:'päikesetõus',sunset:'loojang'},seg=String(r.label||'').split(/\s*·\s*/).map(x=>x.trim()).filter(Boolean),out=[];let sc=null,dn=null;for(const x of seg){if(/^\d{1,2}:\d{2}$/.test(x)||/^\d*\s*\d+\/\d+$/.test(x)||/^[-–—]+$/.test(x))continue;const m=x.match(/^(?:sc\.?\s*)?(\d{2,4}[a-z]?)$/i);if(m&&!sc&&/\d{3,4}/.test(m[1])){sc=m[1];continue}if(/^[\d\s,]+$/.test(x))continue;const k=x.toLowerCase();if(DN[k]){dn=DN[k];continue}out.push(x)}const p=[];if(sc)p.push('stseen '+sc);if(dn)p.push(dn);p.push(...out.slice(0,2));return 'Järgmine '+tf(r.t)+' ('+(d<60?d+' min':fm(d))+' pärast)'+(p.length?': '+p.join(' · '):'')},
  /* Päeva ajajoon: call → lõuna → wrap, praegune hetk */
  tl(){const el=document.getElementById('dtl');if(!el)return;const p=P();if(!p.call||!(wrapStart(p)||p.wrap)){el.innerHTML='';return}
   const c=tm(p.call),we=tm(wrapStart(p)||p.wrap),sp=((we-c+1440)%1440)||1,ls=lunchS(p),lk=p.lk&&p.lk.d==p.date?p.lk:null,
