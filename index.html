@@ -1227,7 +1227,7 @@ const DS2={
   const fill=done?100:now==null||now<0?0:pc(now),key=[p.date,p.call,we,l0,l1,done].join('|');
   if(el.dataset.k!==key){el.dataset.k=key;el.innerHTML=`<div class="tr"><i class="fl"></i>${l0!=null&&l0<sp?`<i class="lu" style="left:${pc(l0)}%;width:${Math.max(1.5,pc(l1)-pc(l0))}%"></i>`:''}<i class="nw"></i></div><div class="tlb"><span>${esc(p.call)}</span><b class="mid"></b><span>${esc(wrapStart(p)||p.wrap)}</span></div>`}
   el.querySelector('.fl').style.width=fill+'%';const nw=el.querySelector('.nw');nw.style.display=now!=null&&now>=0&&now<=sp&&!done?'':'none';nw.style.left=fill+'%';
-  const mid=el.querySelector('.mid');mid.textContent=done?'Päev tehtud':now==null?'Plaanis '+fm(sp):now<0?'Algab '+p.call:now>sp?'Üle plaani '+fm(Math.round(now-sp)):'Päevast möödas '+Math.round(fill)+'%'},
+  const mid=el.querySelector('.mid');mid.textContent=done?'Päev tehtud':now==null?'Plaanis '+fm(sp):now<0?'Algab '+p.call:now>sp?'Üle plaani '+fm(Math.round(now-sp)):''},
  /* Töötundide ribad: pikkus normaalpäeva suhtes */
  bars(){const p=P();document.querySelectorAll('.dsb').forEach(b=>{const n=+b.dataset.n||720,c=tm(b.dataset.c);let w;if(b.dataset.a==='1'||p.date!=workDay())w=+b.dataset.d;else{const el=(DS2.nowM()-c+1440)%1440;w=el>16*60?0:el}b.style.width=Math.min(100,w/(n*1.25)*100)+'%'})}
 };
@@ -1273,6 +1273,7 @@ function vCal2(p){const n0=new Date(),b=new Date(n0.getFullYear(),n0.getMonth()+
  <div class='cleg'><span><i style='background:rgba(251,191,36,.35)'></i>võttepäev</span><span><i style='background:rgba(167,139,250,.5)'></i>sündmus</span><span><i style='background:#fbbf24;border-radius:3px'></i>call sheet – vajuta ikoonile</span><span><i style='box-shadow:0 0 0 2px #fbbf24 inset'></i>täna</span></div></div>${ed}
  <details class='card'><summary>Lae võttekava (PDF)</summary><div class='sub mt-2 mb-3'>Äpp otsib PDF-ist kuupäevad ja nende juurest päeva nr, asukoha, call'i ja wrap'i. Vigu saad päevale vajutades parandada.</div><input type='file' accept='application/pdf' onchange='upSched(this.files[0])'><div id='smsg' class='sub mt-2'></div></details>`+vCal()}
 
+{const h=document.querySelector('body>div.sticky>header');if(h)[...h.querySelectorAll(':scope>img,:scope>b')].forEach(e=>{e.style.cursor='pointer';e.setAttribute('role','link');e.title='Avaleht';e.addEventListener('click',()=>{tab='day';moreOpen=0;try{setDate(P(),workDay())}catch(x){}r();scrollTo({top:0,behavior:'smooth'})})})}
 {const _r=r;r=function(){const x=_r.apply(this,arguments);DS2.tick();return x}}
 setInterval(DS2.tick,1000);
 try{r()}catch(e){}
