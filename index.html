@@ -1440,6 +1440,33 @@ DS2.sg=DS2.secs();
 {const _a=syAdopt;syAdopt=function(){const x=_a.apply(this,arguments);try{if(!SH.ready)DS2.sg=DS2.secs()}catch(e){}return x}}
 {const _st=shStart;shStart=function(){try{DS2.sg=DS2.secs()}catch(e){}return _st.apply(this,arguments)}}
 {const _sa=shApply;shApply=function(){const b=SH.last,x=_sa.apply(this,arguments);try{if(SH.last!==b)DS2.pjApply()}catch(e){}return x}}
+Object.assign(DS2,{
+ shMk(id,x){return {id,pid:x.pid,o:x.o||0,item:JSON.parse(x.j),k:x.k,e:x.e,j:x.j,sig:x.j+'|'+(x.o||0)+(x.pid||'')+(x.k||'')+(x.e||'')}},
+ shU:x=>x&&x.u&&x.u.toMillis?x.u.toMillis():0,
+ shSave(){clearTimeout(DS2.shT);DS2.shT=setTimeout(()=>{try{const d={};SHC.forEach(c=>{const o=d[c]={};(SH.rem[c]||new Map()).forEach((x,id)=>o[id]={j:x.j,o:x.o,pid:x.pid,k:x.k,e:x.e})});localStorage.setItem(SH.ck,JSON.stringify({v:1,full:SH.full,t:SH.T,d}))}catch(e){try{localStorage.removeItem(SH.ck)}catch(x){}}},2000)},
+ shGot(c){SH.got[c]=1;if(SHC.every(k=>SH.got[k])){SH.ready=1;clearTimeout(SH.ap);SH.ap=setTimeout(()=>shApply(),150)}DS2.shSave()},
+ shErr(e){syMsg('☁ Ühiste andmete viga ('+(e&&e.code||'?')+')')}
+});
+function shStart(){try{DS2.sg=DS2.secs()}catch(e){}shStop();SHC=['calendar','gear','loans','projects','flags','pdays','psheets','tsheets'].concat(shMgr()?['pcrew']:[]);SH.rem={};SHC.forEach(c=>SH.rem[c]=new Map());SH.T={};
+ const key='bbsh3:'+tmMe()+':'+(shMgr()?1:0);let C=null;try{C=JSON.parse(localStorage.getItem(key)||'null')}catch(e){}
+ const full=!C||C.v!==1||!C.full||Date.now()-C.full>20*3600e3;SH.ck=key;SH.full=full?Date.now():C.full;
+ if(!full)SHC.forEach(c=>{const D=(C.d||{})[c]||{};Object.keys(D).forEach(id=>{try{SH.rem[c].set(id,DS2.shMk(id,D[id]))}catch(e){}});SH.T[c]=(C.t||{})[c]||0});
+ const TS=firebase.firestore.Timestamp,FV=firebase.firestore.FieldValue;
+ SHC.forEach(c=>{const col=SY.fs.collection(c);
+  if(c=='tsheets'&&!shMgr()){SH.un.push(col.where('e','==',tmMe()).onSnapshot(s=>{const m=new Map();s.docs.forEach(d=>{const x=d.data();if(x.del)return;try{m.set(d.id,DS2.shMk(d.id,x))}catch(e){}});SH.rem[c]=m;DS2.shGot(c)},DS2.shErr));return}
+  const listen=()=>{SH.un.push(col.where('u','>=',TS.fromMillis(SH.T[c]||0)).onSnapshot(s=>{s.docChanges().forEach(ch=>{if(ch.type=='removed')return;const d=ch.doc,x=d.data({serverTimestamps:'estimate'}),u=DS2.shU(x);if(!x)return;if(!d.metadata.hasPendingWrites&&u>(SH.T[c]||0))SH.T[c]=u;if(x.del)SH.rem[c].delete(d.id);else try{SH.rem[c].set(d.id,DS2.shMk(d.id,x))}catch(e){}});DS2.shGot(c)},DS2.shErr))};
+  if(!full){listen();return}
+  col.get().then(s=>{const m=new Map(),old=[],now=Date.now();let T=0;s.docs.forEach(d=>{const x=d.data(),u=DS2.shU(x);if(u>T)T=u;if(x.del){if(u&&now-u>30*864e5)old.push(d.ref);return}try{m.set(d.id,DS2.shMk(d.id,x))}catch(e){}});SH.rem[c]=m;SH.T[c]=T;listen();
+   if(old.length&&shMgr()){const b=SY.fs.batch();old.slice(0,400).forEach(r=>b.delete(r));b.commit().catch(()=>{})}}).catch(DS2.shErr)})}
+async function shPush(){SH.t=null;if(!SH.ready)return;if(SH.busy){SH.t=setTimeout(shPush,1500);return}SH.busy=1;let revert=0;
+ try{const L=shLocal(),ops=[],FV=firebase.firestore.FieldValue;
+  L.forEach((v,k)=>{if(SH.last[k]===shSig(v.d))return;if(!shW(v.c)){revert=1;return}ops.push(['s',k,v])});
+  Object.keys(SH.last).forEach(k=>{if(L.has(k))return;if(k.startsWith('tsheets/')&&!TM.list.length)return;if(!shW(k.split('/')[0])){revert=1;return}ops.push(['d',k])});
+  ops.sort((x,y)=>(x[1].startsWith('projects/')?1:0)-(y[1].startsWith('projects/')?1:0));
+  for(let i=0;i<ops.length;i+=400){const part=ops.slice(i,i+400),b=SY.fs.batch();part.forEach(o=>{const [c,id]=o[1].split('/');const ref=SY.fs.collection(c).doc(id);if(o[0]=='s')b.set(ref,Object.assign({},o[2].d,{u:FV.serverTimestamp()}));else{const it=(SH.rem[c]&&SH.rem[c].get(id))||{};b.set(ref,{del:1,u:FV.serverTimestamp(),pid:it.pid||'',k:it.k||'',e:it.e||''})}});await b.commit();part.forEach(o=>{if(o[0]=='s')SH.last[o[1]]=shSig(o[2].d);else delete SH.last[o[1]]})}
+  if(ops.length)syMsg('☁ Ühised andmed sünkroonitud '+hh())}
+ catch(e){if(e&&e.code=='permission-denied')revert=1;else{syMsg('☁ Ühiste andmete salvestus ebaõnnestus, proovin uuesti');SH.t=setTimeout(shPush,15000)}}
+ SH.busy=0;if(revert)shApply(true)}
 {const _r=r;r=function(){const x=_r.apply(this,arguments);DS2.tick();return x}}
 setInterval(DS2.tick,1000);
 try{r()}catch(e){}
