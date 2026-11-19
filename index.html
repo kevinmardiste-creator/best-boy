@@ -625,6 +625,9 @@ const pinL=(l)=>{let c=l.c||coordsFrom(l.u);if(!c&&l.a){const g=geoC(l.a);if(g)c
 const IOS=(()=>{try{return /iPhone|iPad|iPod/.test(navigator.userAgent||'')||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1)}catch(e){return false}})();
 let MCP=true,W={},WK='',busy=false;
 const jp=x=>{try{return typeof x=='string'?JSON.parse(x):x}catch(e){return null}};
+function wxK(x){x=x||{};const w=x.wc,s=+x.snow||0,rn=+x.rn||0,T=x.t;if([95,96,99].includes(w))return 'th';if([56,57,66,67].includes(w))return 'fz';if([71,73,75,77,85,86].includes(w))return s>0&&rn>0?'sl':'sn';if(s>0&&rn>0)return 'sl';if(s>0)return 'sn';if(rn>0&&T!=null&&T<=1.5&&T>=-1.5)return 'sl';if(rn>0||(w>=51&&w<=82))return 'rn';return null}
+const WXT={th:['⚡','Äike'],fz:['🧊','Jäävihm'],sn:['❄️','Lumi'],sl:['🌨','Lörts'],rn:['🌧','Vihm']};
+function wxT(L){const c={};(L||[]).forEach(h=>{const k=wxK(h.extended);if(k&&k!='th')c[k]=(c[k]||0)+1});const k=Object.keys(c).sort((a,b)=>c[b]-c[a])[0]||'rn';return {k,e:WXT[k][0],N:WXT[k][1]}}
 const WMO={0:'Selge',1:'Peamiselt selge',2:'Vahelduv pilvisus',3:'Pilves',45:'Udu',48:'Härmatisudu',51:'Uduvihm',53:'Uduvihm',55:'Tugev uduvihm',56:'Jäätuv uduvihm',57:'Jäätuv uduvihm',61:'Nõrk vihm',63:'Vihm',65:'Tugev vihm',66:'Jäävihm',67:'Jäävihm',71:'Nõrk lumi',73:'Lumi',75:'Tugev lumi',77:'Lumetera',80:'Hoovihm',81:'Hoovihm',82:'Tugev hoovihm',85:'Lumehoog',86:'Tugev lumehoog',95:'Äike',96:'Äike ja rahe',99:'Äike ja rahe'};
 async function initMcp(){try{await gpsAuto()}catch(e){}startWx();setInterval(()=>{WK='';startWx()},300000)}
 const ft=(u,ms)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||8000);return fetch(u,{signal:c.signal}).finally(()=>clearTimeout(t))};
@@ -639,10 +642,10 @@ async function startWx(){
   if(wr.ex){la=wr.ex[0];lo=wr.ex[1];if(!p.wname){p.wname=nearest(la,lo).n.split(',')[0];p.wsrc=wr.src;p.wref=wr.ref;save()}}
   else{if(!p.wk||!p.wla){let h=null;if(wr.addr){const a=await geoAddr(wr.addr);if(a)h={latitude:a.lat,longitude:a.lon,name:(wr.qs[0]||wr.addr).split(',')[0]}}if(!h)for(const q0 of wr.qs){h=await geo(q0);if(h)break}if(!h){W.err='nf';paintWx();busy=false;return}p.wk='g';p.wla=h.latitude;p.wlo=h.longitude;p.wname=h.name;p.wsrc=wr.src;p.wref=wr.ref;save()}la=p.wla;lo=p.wlo}
   if(!wr.ex&&(Math.abs((p.lat||0)-la)>.002||Math.abs((p.lon||0)-lo)>.002)){p.lat=+(+la).toFixed(5);p.lon=+(+lo).toFixed(5);save();setTimeout(r,0)}
-  const u='https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m&minutely_15=precipitation&forecast_minutely_15=4&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,relative_humidity_2m&timezone=Europe%2FTallinn&forecast_days=3';
+  const u='https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m&minutely_15=precipitation&forecast_minutely_15=4&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,weather_code,snowfall,rain,showers&timezone=Europe%2FTallinn&forecast_days=3';
   const j=await (await ft(u,12000)).json();if(!j.current)throw new Error('nodata');
   const c=j.current,ph=WMO[c.weather_code]||'',now=c.time,hs=j.hourly,k0=Math.max(0,hs.time.findIndex(t=>t>=now.slice(0,13)+':00')),H=[];
-  for(let k=k0;k<Math.min(hs.time.length,k0+36);k++)H.push({date:hs.time[k],temperatureValue:hs.temperature_2m[k],windSpeed:hs.wind_speed_10m[k],humidity:hs.relative_humidity_2m[k],extended:{rainProbability:String(hs.precipitation_probability[k]??0),rainValue:hs.precipitation[k]||0,gustsValue:hs.wind_gusts_10m[k]||0}});
+  for(let k=k0;k<Math.min(hs.time.length,k0+36);k++)H.push({date:hs.time[k],temperatureValue:hs.temperature_2m[k],windSpeed:hs.wind_speed_10m[k],humidity:hs.relative_humidity_2m[k],extended:{rainProbability:String(hs.precipitation_probability[k]??0),rainValue:hs.precipitation[k]||0,gustsValue:hs.wind_gusts_10m[k]||0,wc:hs.weather_code?hs.weather_code[k]:null,snow:hs.snowfall?hs.snowfall[k]||0:0,rn:(hs.rain?hs.rain[k]||0:0)+(hs.showers?hs.showers[k]||0:0),t:hs.temperature_2m[k]}});
   const mm=(j.minutely_15&&j.minutely_15.precipitation)||[],mins=mm.map(v=>({precipitationType:v>0?'Rain':null,dbz:v>0?10:0}));
   W.mc={currentConditions:{temperature:c.temperature_2m,wind:c.wind_speed_10m+' km/h',gust:c.wind_gusts_10m,humidity:c.relative_humidity_2m,phrase:ph},minuteCastForecast:{minutes:mins,summary60:mins.filter(x=>x.precipitationType).length>=2?'Sadu lähema tunni jooksul':''},alerts:[],location:{countryCode:'EE'}};
   W.hr={hourlyForecast:H};W.at=Date.now();W.err='';
@@ -707,8 +710,8 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  const c=W.mc?.currentConditions||{},mc=W.mc?.minuteCastForecast||{},H=W.hr?.hourlyForecast||[],rp=h=>parseInt(h.extended?.rainProbability)||0,a=tm(p.call),b0=tm(p.wrap),b=b0<=a?b0+1440:b0,
  inW=h=>{const dd=Math.round((Date.parse(h.date.slice(0,10))-Date.parse(p.date))/864e5),t=dd*1440+tm(h.date.slice(11,16));return t>=a&&t<=b},
  win=H.filter(inW),inw=win.length>0,rows=H.slice(0,12),wr=inw?win:rows,
- wet=wr.filter(h=>rp(h)>=50||h.extended?.rainValue>=0.3),light=wr.filter(h=>h.extended?.rainValue>0&&!(rp(h)>=50||h.extended?.rainValue>=0.3)),gustH=wr.filter(h=>h.extended?.gustsValue>=40),
- real=x=>x.precipitationType&&!/^(none|null|0)$/i.test(String(x.precipitationType))&&!(x.dbz!=null&&x.dbz<=0),mcRain=(mc.minutes||[]).filter(real).length>=2,hp=H[0]?rp(H[0]):0,soon=mcRain&&hp>=20,alerts=(W.mc?.alerts||[]).length,warn0=wet.length||gustH.length||soon||alerts,
+ wet=wr.filter(h=>rp(h)>=50||h.extended?.rainValue>=0.3),light=wr.filter(h=>h.extended?.rainValue>0&&!(rp(h)>=50||h.extended?.rainValue>=0.3)),gustH=wr.filter(h=>h.extended?.gustsValue>=40),thH=wr.filter(h=>[95,96,99].includes(h.extended?.wc)),
+ real=x=>x.precipitationType&&!/^(none|null|0)$/i.test(String(x.precipitationType))&&!(x.dbz!=null&&x.dbz<=0),mcRain=(mc.minutes||[]).filter(real).length>=2,hp=H[0]?rp(H[0]):0,soon=mcRain&&hp>=20,alerts=(W.mc?.alerts||[]).length,warn0=thH.length||wet.length||gustH.length||soon||alerts,
  hh=l=>l.length>1?l[0].date.slice(11,16)+'–'+l[l.length-1].date.slice(11,16):l[0].date.slice(11,16),
  tNow=(()=>{const v=parseFloat(String(c.temperature||'').replace(',','.'));return isFinite(v)?v:(H[0]?+H[0].temperatureValue:null)})(),
  ws=(()=>{const m=String(c.wind||'').match(/(\d+(?:[.,]\d+)?)\s*(km\/h|m\/s|mph)?/i);if(m){let v=parseFloat(m[1].replace(',','.'));const u=(m[2]||'km/h').toLowerCase();return u=='m/s'?v:u=='mph'?v*.447:v/3.6}const v=dn(H[0],/^wind(speed|value)?$/i);return v==null?null:v/3.6})(),
@@ -718,7 +721,7 @@ function paintWx(){const e=$('#wxlive');if(!e)return;const p=P(),sn=sun(p),f1=v=
  cls=alerts||wet.length?'rain':/vihm|sadu|tibu/i.test(ph)?'rain':night?'night':/päike|selge/i.test(ph)?'sun':'cloud',
  tile=(l,v,u,w,dec)=>{const ok=v!=null&&isFinite(v);return `<div class="wxk ${w?'wxw':''}"><small>${l}</small><b>${ok?(dec?f1(v):Math.round(v)):'–'}</b>${ok?`<i>${u}</i>`:''}</div>`},
  verdict=alerts?['#7f1d1d','#fecaca','⛔','Ilmahoiatus: '+esc(JSON.stringify(W.mc.alerts[0]).slice(0,110))]
-  :wet.length?['#33230a','#fcd34d','🌧','Vihm tõenäoline '+hh(wet)+' ('+Math.max(...wet.map(rp))+'%, '+f1(Math.max(...wet.map(h=>+h.extended?.rainValue||0)))+' mm)']
+  :thH.length?['#2e1065','#e9d5ff','⚡','Äikest oodata '+hh(thH)+(thH.some(h=>h.extended.wc>95)?' · võimalik rahe':'')+(wet.length&&wxT(wet).k!='rn'?' · '+wxT(wet).N.toLowerCase()+' '+hh(wet):'')]:wet.length?['#33230a','#fcd34d',wxT(wet).e,wxT(wet).N+' tõenäoline '+hh(wet)+' ('+Math.max(...wet.map(rp))+'%, '+f1(Math.max(...wet.map(h=>+h.extended?.rainValue||0)))+' mm)']
   :soon?['#33230a','#fcd34d','🌧',esc(mc.summary60||'Vihm lähedal')+' (tunni tõenäosus '+hp+'%)']
   :gustH.length?['#33230a','#fcd34d','💨','Puhangud 11+ m/s '+hh(gustH)]
   :light.length?['#16222f','#cbd5e1','🌦','Kerge sadu võimalik '+hh(light)+' ('+f1(Math.max(...light.map(h=>+h.extended.rainValue)))+' mm, tõenäosus '+Math.max(...light.map(rp))+'%)']
