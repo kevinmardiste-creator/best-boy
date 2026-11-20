@@ -235,6 +235,7 @@ function vCrew(p){
   ${pl.length?`<div class="pills">${pl.join('')}</div>`:''}
   <details class="ed"><summary>Muuda / aruanded</summary><div class="space-y-3 mt-3">
    <div class="grid grid-cols-3 gap-2">${tchip(c.id,'call','Call',c.call,'')}${tchip(c.id,'wrap','Wrap (plaan)',c.wrap,'')}${tchip(c.id,'act','Tegelik wrap',c.act,c.act?`<button class="underline" onclick="cu('${c.id}','act','')">tühjenda</button>`:'sisesta päeva lõpus',c.act?'!border-amber-400':'')}</div>
+   ${DS2.drEd(c)}
    ${rule(p,'rest')?`<div class="grid grid-cols-3 gap-2">${tchip(c.id,'prev','Eelmine wrap',c.prev||prevWrap(p,c),c.prev?`<button class="underline" onclick="cu('${c.id}','prev','')">automaatne</button>`:'automaatne eelmisest päevast')}<div class="col-span-2 sub self-center">Turnaround arvutatakse sellest ajast selle päeva callini.</div></div>`:''}
    <div class="flex gap-2 flex-wrap"><select class="rounded-full" onchange="cu('${c.id}','role',this.value)">${ROLES.map(x=>`<option ${x==c.role?'selected':''}>${x}</option>`).join('')}</select>
     <button class="rounded-full px-3 py-1.5 text-sm font-semibold border ${c.drv?'bg-amber-400 text-slate-900 border-amber-400':'border-slate-500'}" onclick="cu('${c.id}','drv',${!c.drv})">🚚 C-sõitja</button>
@@ -1433,6 +1434,14 @@ Object.assign(DS2,{
   const R=[...L].sort((x,y)=>(isB(y)-isB(x))||(num(x)-num(y)));
   const btn=l=>{const q=pinL(l);return `<a class="lbt" target="_blank" rel="noopener" href="${q.m}">Maps</a><a class="lbt" target="_blank" rel="noopener" href="${q.w}" onclick="return wazeGo(event,'${esc(q.ws)}')">Waze</a>`};
   return `<div class="lcl">${R.map(l=>{const b=isB(l),both=!b&&B.test(l.n||''),a=l.a&&l.a!=l.n?l.a:'';return `<div class="lci ${b?'lcb':'lcs'}"><div class="lch"><span class="lct">${b?'🅿️ Baas':'🎬 Võte'}${both?' + baas':''}</span><span class="lcn">${esc(l.n)}</span></div><div class="lca">${esc(a||l.n)}</div><div class="lcg">${btn(l)}</div></div>`}).join('')}</div>`},
+ drEd(c){if(!c||!c.drv||!c.call)return '';const x=DS2.cDate(c);if(!x)return '';const t=DS2.drT(x.p,x.d,c),w=c.act||c.wrap;if(t.m!='wh'&&t.e!='wh')return '';
+  const h=m=>{m=((m%1440)+1440)%1440;return String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+  const ch=(k,lab,v,man,hint)=>`<div class="rounded-xl border ${man?'border-amber-400':'border-slate-600'} bg-slate-900 p-2 text-center"><div class="text-[10px] uppercase tracking-wide text-slate-400">${lab}</div><input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" value="${v}" onchange="DS2.drTm('${c.id}','${k}',this.value)" class="!bg-transparent !border-0 !p-0 text-center text-xl font-extrabold tabular-nums w-full"><div class="text-[10px] text-slate-400">${man?`<button class="underline" onclick="DS2.drTm('${c.id}','${k}','')">kaardi järgi</button>`:hint}</div></div>`;
+  return `<div class="grid grid-cols-2 gap-2">${t.m=='wh'?ch('s','🚚 Laost väljus',h(tm(c.call)-t.a),DS2.dm(c,'bts'),t.a+' min enne calli'):''}${t.e=='wh'&&w?ch('e','🚚 Lattu jõudis',h(tm(w)+t.b),DS2.dm(c,'bte'),t.b+' min pärast wrapi'):''}</div>`},
+ drTm(id,k,v){const p=P(),c=(p.crew||[]).find(x=>x.id==id);if(!c)return;const f=k=='s'?'whs':'whe';v=String(v||'').trim();
+  if(!v){delete c[f]}else{const d=v.replace(/\D/g,'');if(d.length<3){typeof toast=='function'&&toast('Kirjuta kellaaeg kujul TT:MM');return}const m=+d.slice(0,-2)*60+ +d.slice(-2);if(+d.slice(-2)>59||m>=1440)return;
+   const base=k=='s'?tm(c.call):tm(c.act||c.wrap);let x=k=='s'?base-m:m-base;x=((x%1440)+1440)%1440;if(x>360){typeof toast=='function'&&toast('Aeg tundub vale – kontrolli');return}c[f]=x}
+  save();keepOpen()},
  bsp(c){const z={a:0,b:0,la:'',lb:''};if(!c||!c.call)return z;const x=DS2.cDate(c);if(!x)return z;if(c.drv){const t=DS2.drT(x.p,x.d,c);return {a:t.a,b:t.b,la:t.m=='wh'?'laost':'linnapiirist',lb:t.e=='wh'?'lattu':'linnapiirini'}}if(c.bt!=null&&c.bt!=='')return {a:0,b:+c.bt||0,la:'',lb:'sõit'};const i=DS2.btInfo(x.p,x.d);return {a:i.out,b:i.back,la:'linnapiirist',lb:'linnapiirini'}},
  btOf(c){if(!c||!c.call)return 0;const x=DS2.cDate(c);if(c.drv){if(!x)return 0;const t=DS2.drT(x.p,x.d,c);return t.a+t.b}if(c.bt!=null&&c.bt!=='')return +c.bt||0;if(!x)return 0;const i=DS2.btInfo(x.p,x.d);return i.out+i.back},
  btSet(k,v){const p=P();const e=p.dd[p.date]=p.dd[p.date]||{};if(k===''){delete e.bt;delete e.bte;delete e.btb;(p.crew||[]).forEach(c=>{delete c.bts;delete c.bte;delete c.whs;delete c.whe;delete c.vm;delete c.ve})}else{e[k=='e'?'bte':'bt']=Math.max(0,Math.round(+v||0));if(k=='e')delete e.btb}save();r()},
