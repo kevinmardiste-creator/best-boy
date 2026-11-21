@@ -1433,7 +1433,7 @@ Object.assign(DS2,{
   const R=[...L].sort((x,y)=>(isB(y)-isB(x))||(num(x)-num(y)));
   const btn=l=>{const q=pinL(l);return `<a class="lbt" target="_blank" rel="noopener" href="${q.m}">Maps</a><a class="lbt" target="_blank" rel="noopener" href="${q.w}" onclick="return wazeGo(event,'${esc(q.ws)}')">Waze</a>`};
   return `<div class="lcl">${R.map(l=>{const b=isB(l),both=!b&&B.test(l.n||''),a=l.a&&l.a!=l.n?l.a:'';return `<div class="lci ${b?'lcb':'lcs'}"><div class="lch"><span class="lct">${b?'🅿️ Baas':'🎬 Võte'}${both?' + baas':''}</span><span class="lcn">${esc(l.n)}</span></div><div class="lca">${esc(a||l.n)}</div><div class="lcg">${btn(l)}</div></div>`}).join('')}</div>`},
- drEd(c){if(!c||!c.drv||!c.call)return '';const x=DS2.cDate(c);if(!x)return '';const t=DS2.drT(x.p,x.d,c),w=c.act||c.wrap;if(t.m!='wh'&&t.e!='wh')return '';
+ drEd(c){if(!c||!c.drv||!c.call)return '';const x=DS2.cDate(c);if(!x||!DS2.btOn(x.p,x.d))return '';const t=DS2.drT(x.p,x.d,c),w=c.act||c.wrap;if(t.m!='wh'&&t.e!='wh')return '';
   const h=m=>{m=((m%1440)+1440)%1440;return String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
   const ch=(k,lab,v,man,hint)=>`<div class="rounded-xl border ${man?'border-amber-400':'border-slate-600'} bg-slate-900 p-2 text-center"><div class="text-[10px] uppercase tracking-wide text-slate-400">${lab}</div><input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" value="${v}" onchange="DS2.drTm('${c.id}','${k}',this.value)" class="!bg-transparent !border-0 !p-0 text-center text-xl font-extrabold tabular-nums w-full"><div class="text-[10px] text-slate-400">${man?`<button class="underline" onclick="DS2.drTm('${c.id}','${k}','')">kaardi järgi</button>`:hint}</div></div>`;
   return {s:t.m=='wh'?ch('s','🚚 Laost väljus',h(tm(c.call)-t.a),DS2.dm(c,'bts'),t.a+' min enne calli'):'',e:t.e=='wh'&&w?ch('e','🚚 Lattu jõudis',h(tm(w)+t.b),DS2.dm(c,'bte'),t.b+' min pärast wrapi'):''}},
@@ -1450,8 +1450,8 @@ Object.assign(DS2,{
   if(!v){delete c[f]}else{const d=v.replace(/\D/g,'');if(d.length<3){typeof toast=='function'&&toast('Kirjuta kellaaeg kujul TT:MM');return}const m=+d.slice(0,-2)*60+ +d.slice(-2);if(+d.slice(-2)>59||m>=1440)return;
    const base=k=='s'?tm(c.call):tm(c.act||c.wrap);let x=k=='s'?base-m:m-base;x=((x%1440)+1440)%1440;if(x>360){typeof toast=='function'&&toast('Aeg tundub vale – kontrolli');return}c[f]=x}
   save();keepOpen()},
- bsp(c){const z={a:0,b:0,la:'',lb:''};if(!c||!c.call)return z;const x=DS2.cDate(c);if(!x)return z;if(c.drv){const t=DS2.drT(x.p,x.d,c);return {a:t.a,b:t.b,la:t.m=='wh'?'laost':'linnapiirist',lb:t.e=='wh'?'lattu':'linnapiirini'}}if(c.bt!=null&&c.bt!=='')return {a:0,b:+c.bt||0,la:'',lb:'sõit'};const i=DS2.btInfo(x.p,x.d);return {a:i.out,b:i.back,la:'linnapiirist',lb:'linnapiirini'}},
- btOf(c){if(!c||!c.call)return 0;const x=DS2.cDate(c);if(c.drv){if(!x)return 0;const t=DS2.drT(x.p,x.d,c);return t.a+t.b}if(c.bt!=null&&c.bt!=='')return +c.bt||0;if(!x)return 0;const i=DS2.btInfo(x.p,x.d);return i.out+i.back},
+ bsp(c){const z={a:0,b:0,la:'',lb:''};if(!c||!c.call)return z;const x=DS2.cDate(c);if(!x||!DS2.btOn(x.p,x.d))return z;if(c.drv){const t=DS2.drT(x.p,x.d,c);return {a:t.a,b:t.b,la:t.m=='wh'?'laost':'linnapiirist',lb:t.e=='wh'?'lattu':'linnapiirini'}}if(c.bt!=null&&c.bt!=='')return {a:0,b:+c.bt||0,la:'',lb:'sõit'};const i=DS2.btInfo(x.p,x.d);return {a:i.out,b:i.back,la:'linnapiirist',lb:'linnapiirini'}},
+ btOf(c){if(!c||!c.call)return 0;const x=DS2.cDate(c);if(x&&!DS2.btOn(x.p,x.d))return 0;if(c.drv){if(!x)return 0;const t=DS2.drT(x.p,x.d,c);return t.a+t.b}if(c.bt!=null&&c.bt!=='')return +c.bt||0;if(!x)return 0;const i=DS2.btInfo(x.p,x.d);return i.out+i.back},
  btSet(k,v){const p=P();const e=p.dd[p.date]=p.dd[p.date]||{};if(k===''){delete e.bt;delete e.bte;delete e.btb;(p.crew||[]).forEach(c=>{delete c.bts;delete c.bte;delete c.whs;delete c.whe;delete c.vm;delete c.ve})}else{e[k=='e'?'bte':'bt']=Math.max(0,Math.round(+v||0));if(k=='e')delete e.btb}save();r()},
  btDrv(id,k,v){const p=P(),c=(p.crew||[]).find(x=>x.id==id);if(!c)return;c[k=='bts'?'whs':'whe']=Math.max(0,Math.round(+v||0));save();r()},
  btVm(id,k,v){const p=P(),c=(p.crew||[]).find(x=>x.id==id);if(!c)return;const f=k=='m'?'vm':'ve';delete c[f];if(DS2.vm(p,p.date,c,k)!=v)c[f]=v;save();r()},
@@ -1479,7 +1479,7 @@ Object.assign(DS2,{
    let bE=0;if(!inT(s2.c[0])){let q=-1;for(let i=0;i<s2.c.length;i++)if(inT(s2.c[i])){q=i;break}if(q>0)for(let i=0;i<q&&i<s2.du.length;i++)bE+=s2.du[i]}
    e.rt={k,ok:1,ow:r5(tr(s1)),back:r5(tr(s2)),bS:Math.round(bS/60),bE:Math.round(bE/60),l1:A[0],l2:A[A.length-1],ts:Date.now()}}
   catch(x){e.rt={k,err:1,ts:Date.now()}}DS2._rtB=0;save();if(tab=='crew'&&P()===p)r()},
- btCard(p){const d=p.date,e=(p.dd&&p.dd[d])||{},i=DS2.btInfo(p,d),dr=(p.crew||[]).filter(c=>c.drv);try{DS2.rtRun(p,d)}catch(x){}
+ btCard(p){if(!DS2.btOn(p,p.date))return '';const d=p.date,e=(p.dd&&p.dd[d])||{},i=DS2.btInfo(p,d),dr=(p.crew||[]).filter(c=>c.drv);try{DS2.rtRun(p,d)}catch(x){}
   const showB=i.found||i.man;if(!showB&&!dr.length)return '';const rt=DS2.rtFor(p,d),tot=i.out+i.back,wh=p.wh||'Nõlva, Tallinn',hasA=DS2.rtLocs(p,d).length;
   const hm=m=>{m=((m%1440)+1440)%1440;return String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
   const err=!rt&&e.rt&&e.rt.err&&String(e.rt.k||'').indexOf('|'+wh+'|')>0;
@@ -1502,7 +1502,7 @@ Object.assign(DS2,{
   return `<div class="card btc3"><details class="btx"${DS2.bto?' open':''} ontoggle="DS2.bto=this.open"><summary class="dsx"><div class="bxh"><b>Sõiduajad</b><span class="bxe">${anyMan?'✎ ':''}Muuda</span></div>${rows}${vq&&vl===null?`<div class="bxq"><span>🛡 Kas siin on öösel valve? <i>Veok jääb platsile ainult siis.</i></span>${vb('Jah, jääb','Ei, lattu')}</div>`:''}</summary><div class="bxb">${body}</div></details></div>`}
 });
 function dur(c){return spanM(c)+DS2.btOf(c)}
-{const _v=vCrew;vCrew=function(p){const c=DS2.btCard(p);return c+_v(p)+(c?'':'<div class="btadd"><button onclick="DS2.btSet(\'s\',10);DS2.btSet(\'e\',10);scrollTo(0,0)\">＋ Linnast väljas (sõit linnapiirist)</button></div>')}}
+{const _v=vCrew;vCrew=function(p){const c=DS2.btCard(p);return c+_v(p)+(c||!DS2.btOn(p,p.date)?'':'<div class="btadd"><button onclick="DS2.btSet(\'s\',10);DS2.btSet(\'e\',10);scrollTo(0,0)\">＋ Linnast väljas (sõit linnapiirist)</button></div>')}}
 Object.assign(DS2,{
  secs(){const o={},J=x=>hsh(JSON.stringify(x));o.cal=J(S.cal||[]);S.projects.forEach(p=>{const k='p|'+p.id+'|';o[k+'meta']=J([p.name,p.glists||{},p.roles||{},p.recce||null]);o[k+'gear']=J(p.gear||[]);o[k+'loans']=J(p.loans||[]);o[k+'sheets']=J(p.sheets||[]);Object.keys(p.dd||{}).forEach(d=>o[k+'dd|'+d]=J(p.dd[d]));Object.keys(p.cd||{}).forEach(d=>o[k+'cd|'+d]=J(p.cd[d]||[]))});return o},
  secVal(k){if(k=='cal')return S.cal||[];const [,id,t,d]=k.split('|'),p=S.projects.find(q=>q.id==id);if(!p)return undefined;if(t=='meta')return {name:p.name,glists:p.glists||{},roles:p.roles||{},recce:p.recce||null};if(t=='dd')return p.dd&&p.dd[d];if(t=='cd')return p.cd&&p.cd[d];return p[t]||[]},
@@ -1579,6 +1579,7 @@ try{r()}catch(e){}
 
 
 DS2.lbW=Date.now();
+DS2.btOn=(p,d)=>!!d&&d>=(p&&p.btFrom||'2026-11-17');
 DS2.shLocs=p=>{const L=locs(p),B=/\b(base|unit ?base|crew ?park\w*|parkla|baas)\b/i,S=/\b(loc|set|location)\b/i,num=l=>{const m=String(l.n||'').match(/\d+/);return m?+m[0]:99},Z=L.filter(l=>!(B.test(l.n||'')&&!S.test(l.n||''))).sort((x,y)=>num(x)-num(y));return Z.length?Z:L};
 DS2.shCur=p=>{const L=DS2.shLocs(p);if(L.length<2||p.date!=today())return 0;let cur=1;try{const sh=planSheet(p),R=(sh&&sh.rows||[]).slice().sort((a,b)=>a.t-b.t),c=tm(p.call||'00:00'),rel=t=>((t-c)%1440+1440)%1440,now=rel(DS2.nowM());R.forEach(x=>{if(rel(x.t)>now)return;const t=String(x.label||'');if(/\bmove\b|kolimine/i.test(t)){const m=t.match(/\bloc\.?\s*(\d+)/i);cur=m?+m[1]:cur+1}})}catch(e){}const num=l=>{const m=String(l.n||'').match(/\d+/);return m?+m[0]:0},i=L.findIndex(l=>num(l)==cur);return i>=0?i:Math.min(cur-1,L.length-1)};
 openShade=function(i){const p=P(),L=DS2.shLocs(p);if(i==null)i=DS2.shCur(p);const l=L[i]||L[0],q=Object.assign({},p);if(l&&l.id!='main'){q.loc=l.a||l.n;q.ln=l.n;q.clat=null;q.clon=null}
