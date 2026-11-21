@@ -1451,6 +1451,7 @@ Object.assign(DS2,{
    const base=k=='s'?tm(c.call):tm(c.act||c.wrap);let x=k=='s'?base-m:m-base;x=((x%1440)+1440)%1440;if(x>360){typeof toast=='function'&&toast('Aeg tundub vale – kontrolli');return}c[f]=x}
   save();keepOpen()},
  bsp(c){const z={a:0,b:0,la:'',lb:''};if(!c||!c.call)return z;const x=DS2.cDate(c);if(!x||!DS2.btOn(x.p,x.d))return z;if(c.drv){const t=DS2.drT(x.p,x.d,c);return {a:t.a,b:t.b,la:t.m=='wh'?'laost':'linnapiirist',lb:t.e=='wh'?'lattu':'linnapiirini'}}if(c.bt!=null&&c.bt!=='')return {a:0,b:+c.bt||0,la:'',lb:'sõit'};const i=DS2.btInfo(x.p,x.d);return {a:i.out,b:i.back,la:'linnapiirist',lb:'linnapiirini'}},
+ btOn(p,d){return !!d&&d>=(p&&p.btFrom||'2026-11-17')},
  btOf(c){if(!c||!c.call)return 0;const x=DS2.cDate(c);if(x&&!DS2.btOn(x.p,x.d))return 0;if(c.drv){if(!x)return 0;const t=DS2.drT(x.p,x.d,c);return t.a+t.b}if(c.bt!=null&&c.bt!=='')return +c.bt||0;if(!x)return 0;const i=DS2.btInfo(x.p,x.d);return i.out+i.back},
  btSet(k,v){const p=P();const e=p.dd[p.date]=p.dd[p.date]||{};if(k===''){delete e.bt;delete e.bte;delete e.btb;(p.crew||[]).forEach(c=>{delete c.bts;delete c.bte;delete c.whs;delete c.whe;delete c.vm;delete c.ve})}else{e[k=='e'?'bte':'bt']=Math.max(0,Math.round(+v||0));if(k=='e')delete e.btb}save();r()},
  btDrv(id,k,v){const p=P(),c=(p.crew||[]).find(x=>x.id==id);if(!c)return;c[k=='bts'?'whs':'whe']=Math.max(0,Math.round(+v||0));save();r()},
@@ -1579,7 +1580,6 @@ try{r()}catch(e){}
 
 
 DS2.lbW=Date.now();
-DS2.btOn=(p,d)=>!!d&&d>=(p&&p.btFrom||'2026-11-17');
 DS2.shLocs=p=>{const L=locs(p),B=/\b(base|unit ?base|crew ?park\w*|parkla|baas)\b/i,S=/\b(loc|set|location)\b/i,num=l=>{const m=String(l.n||'').match(/\d+/);return m?+m[0]:99},Z=L.filter(l=>!(B.test(l.n||'')&&!S.test(l.n||''))).sort((x,y)=>num(x)-num(y));return Z.length?Z:L};
 DS2.shCur=p=>{const L=DS2.shLocs(p);if(L.length<2||p.date!=today())return 0;let cur=1;try{const sh=planSheet(p),R=(sh&&sh.rows||[]).slice().sort((a,b)=>a.t-b.t),c=tm(p.call||'00:00'),rel=t=>((t-c)%1440+1440)%1440,now=rel(DS2.nowM());R.forEach(x=>{if(rel(x.t)>now)return;const t=String(x.label||'');if(/\bmove\b|kolimine/i.test(t)){const m=t.match(/\bloc\.?\s*(\d+)/i);cur=m?+m[1]:cur+1}})}catch(e){}const num=l=>{const m=String(l.n||'').match(/\d+/);return m?+m[0]:0},i=L.findIndex(l=>num(l)==cur);return i>=0?i:Math.min(cur-1,L.length-1)};
 openShade=function(i){const p=P(),L=DS2.shLocs(p);if(i==null)i=DS2.shCur(p);const l=L[i]||L[0],q=Object.assign({},p);if(l&&l.id!='main'){q.loc=l.a||l.n;q.ln=l.n;q.clat=null;q.clon=null}
