@@ -982,10 +982,10 @@ function textDates(t){const o=[],mn=w=>MSTEM.find(x=>w.toLowerCase().startsWith(
  t.replace(new RegExp('\\b(['+L+']{3,9})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b','g'),(m,w,d,y)=>{const k=mn(w);if(k){const v=mkIso(+d,k[1],y&&+y);if(v)o.push(v)}return m});
  t.replace(/(?<![\d.:])(\d{1,2})[./-](\d{1,2})(?:[./-](\d{4}|\d{2}))?(?![\d:])/g,(m,d,mo,y)=>{const v=mkIso(+d,+mo,y&&+y);if(v)o.push(v);return m});return o}
 function resolveDate(p,s){const i=s.i,T=Date.now(),near=d=>Math.abs(new Date(d)-T)<45*864e5,shoot=d=>p.dd[d]&&p.dd[d].kind!='event',td=[...new Set(textDates(s.t||''))],nd=[...new Set(textDates(String(s.n||'').replace(/\.pdf$/i,'')))];let d='',src='';
- if(i.day){d=td.find(x=>shoot(x)&&p.dd[x].day==i.day)||'';if(d)src='call sheeti tekst + kalender'}
+ if(i.day){d=td.filter(x=>shoot(x)&&p.dd[x].day==i.day).sort((a,b)=>Math.abs(new Date(a)-T)-Math.abs(new Date(b)-T))[0]||'';if(d)src='call sheeti tekst + kalender'}
  if(!d){d=nd.find(x=>near(x)||shoot(x))||'';if(d)src='faili nimi'}
  if(!d){d=td.find(shoot)||'';if(d)src='tekst (võttepäev kalendris)'}
- if(!d&&i.day){d=Object.keys(p.dd).sort().find(x=>shoot(x)&&p.dd[x].day==i.day)||'';if(d)src='päeva number kalendrist'}
+ if(!d&&i.day){d=Object.keys(p.dd).filter(x=>shoot(x)&&p.dd[x].day==i.day).sort((a,b)=>Math.abs(new Date(a)-T)-Math.abs(new Date(b)-T))[0]||'';if(d)src='päeva number kalendrist'}
  if(!d){d=td.find(near)||'';if(d)src='tekst'}
  i.date=d||today();i.dsrc=src||'ei leidnud – pane käsitsi'}
 function csSetDate(id,v){const p=P(),z=p.sheets.find(x=>x.id==id);if(!z||!v)return;z.i.date=v;z.i.dsrc='käsitsi';csid=id;save();r()}
